@@ -52,6 +52,22 @@ vi.mock("../src/components/ImportActions", () => ({
       >
         Trigger DOCX Import
       </button>
+      <button
+        type="button"
+        onClick={() =>
+          onImported?.({
+            kind: "markdown",
+            response: {
+              project: "/tmp/MarkdownImport.epubproj",
+              source: "/tmp/book.md",
+              status: "imported",
+              title: "Markdown Import Summary"
+            }
+          })
+        }
+      >
+        Trigger Markdown Import
+      </button>
     </section>
   )
 }));
@@ -97,5 +113,34 @@ describe("App", () => {
     const preview = screen.getByTitle("EPUB XHTML preview");
     const srcDoc = preview.getAttribute("srcdoc") ?? "";
     expect(srcDoc).toContain("Fresh imported preview content.");
+
+    fireEvent.click(screen.getByRole("button", { name: "Imported Finale" }));
+
+    expect(screen.getByRole("button", { name: "Imported Finale" })).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("button", { name: "Imported Opening" })).not.toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("button", { name: "Imported Finale" })).toBeInTheDocument();
+    expect(preview.getAttribute("srcdoc") ?? "").toContain("Closing notes.");
+    expect(preview.getAttribute("srcdoc") ?? "").not.toContain("Fresh imported preview content.");
+  });
+
+  it("replaces prior content with a neutral markdown import summary state", async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Trigger DOCX Import" }));
+    expect(await screen.findByRole("heading", { name: "Imported Through App State" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Trigger Markdown Import" }));
+
+    expect(await screen.findByRole("heading", { name: "Markdown Import Summary" })).toBeInTheDocument();
+    expect(screen.getByText("/ und")).toBeInTheDocument();
+    expect(screen.getByText("Project folder: /tmp/MarkdownImport.epubproj")).toBeInTheDocument();
+    expect(screen.getByText("Imported project summary loaded. Detailed section review is not available for this source yet.")).toBeInTheDocument();
+    expect(screen.queryByText("One image is missing alt text.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Imported Opening" })).not.toBeInTheDocument();
+
+    const preview = screen.getByTitle("EPUB XHTML preview");
+    const srcDoc = preview.getAttribute("srcdoc") ?? "";
+    expect(srcDoc).not.toContain("Fresh imported preview content.");
+    expect(srcDoc).not.toContain("The first paragraph tests ordinary prose flow and margins in the preview pane.");
   });
 });

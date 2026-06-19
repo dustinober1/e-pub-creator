@@ -35,6 +35,14 @@ const sampleProject = (() => {
   };
 })();
 
+function createImportedMarkdownProject(title: string) {
+  return createBookProject({
+    title,
+    author: "",
+    language: "und"
+  });
+}
+
 export function App() {
   const [activeProject, setActiveProject] = useState(sampleProject);
   const [selectedSectionId, setSelectedSectionId] = useState(sampleProject.sections[0]?.id);
@@ -57,7 +65,10 @@ export function App() {
       return;
     }
 
+    const placeholderProject = createImportedMarkdownProject(result.response.title ?? result.response.project);
+    setActiveProject(placeholderProject);
     setImportedProjectPath(result.response.project);
+    setSelectedSectionId(undefined);
     setImportReport(undefined);
   }
 

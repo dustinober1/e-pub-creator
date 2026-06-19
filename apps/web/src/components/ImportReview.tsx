@@ -11,7 +11,12 @@ export function ImportReview({ report, projectPath, sectionCount }: ImportReview
     return (
       <section className="panel" aria-labelledby="import-review-heading">
         <h2 id="import-review-heading">Import Review</h2>
-        <p className="panel-copy">No import report yet. Import a project to review sections, warnings, and assets.</p>
+        {projectPath ? <p className="panel-copy">Project folder: {projectPath}</p> : null}
+        <p className="panel-copy">
+          {projectPath
+            ? "Imported project summary loaded. Detailed section review is not available for this source yet."
+            : "No import report yet. Import a project to review sections, warnings, and assets."}
+        </p>
       </section>
     );
   }
