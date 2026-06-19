@@ -1,13 +1,22 @@
 import { useState } from "react";
-import { createBookProject, createSection, createTextBlock } from "@epub-creator/core/book";
+import {
+  createBookProject,
+  createSection,
+  createTextBlock,
+} from "@epub-creator/core/book";
 import { renderSectionFragment } from "@epub-creator/renderer/html";
 import { createPreviewDocument } from "@epub-creator/renderer/preview";
+import type { BookProject, BookSection } from "@epub-creator/core/book";
 import type { UploadImportReport } from "./api/client";
 import { BookOutline } from "./components/BookOutline";
-import { ImportActions, type ImportCompletion } from "./components/ImportActions";
+import {
+  ImportActions,
+  type ImportCompletion,
+} from "./components/ImportActions";
 import { ImportReview } from "./components/ImportReview";
 import { MetadataPanel } from "./components/MetadataPanel";
 import { PreviewFrame } from "./components/PreviewFrame";
+import { SectionEditor } from "./components/SectionEditor";
 import { ThemeEditor } from "./components/ThemeEditor";
 import { ThemeGallery } from "./components/ThemeGallery";
 import { ValidationPanel } from "./components/ValidationPanel";
@@ -16,22 +25,28 @@ const sampleProject = (() => {
   const project = createBookProject({
     title: "Formatting Stress Book",
     author: "Sample Author",
-    language: "en"
+    language: "en",
   });
 
   const chapter = createSection({
     title: "Chapter One",
     role: "body",
     blocks: [
-      createTextBlock("paragraph", "The first paragraph tests ordinary prose flow and margins in the preview pane."),
+      createTextBlock(
+        "paragraph",
+        "The first paragraph tests ordinary prose flow and margins in the preview pane.",
+      ),
       createTextBlock("scene-break", ""),
-      createTextBlock("epigraph", "A sample epigraph checks quote treatment before export.")
-    ]
+      createTextBlock(
+        "epigraph",
+        "A sample epigraph checks quote treatment before export.",
+      ),
+    ],
   });
 
   return {
     ...project,
-    sections: [chapter]
+    sections: [chapter],
   };
 })();
 
@@ -39,22 +54,55 @@ function createImportedMarkdownProject(title: string) {
   return createBookProject({
     title,
     author: "",
-    language: "und"
+    language: "und",
   });
 }
 
 export function App() {
   const [activeProject, setActiveProject] = useState(sampleProject);
-  const [selectedSectionId, setSelectedSectionId] = useState(sampleProject.sections[0]?.id);
+  const [selectedSectionId, setSelectedSectionId] = useState(
+    sampleProject.sections[0]?.id,
+  );
   const [importedProjectPath, setImportedProjectPath] = useState<string>();
   const [importReport, setImportReport] = useState<UploadImportReport>();
-  const previewSection = activeProject.sections.find((section) => section.id === selectedSectionId) ?? activeProject.sections[0];
-  const renderedSections = previewSection ? renderSectionFragment(activeProject, previewSection) : "";
+  const selectedSection = activeProject.sections.find(
+    (section) => section.id === selectedSectionId,
+  );
+  const previewSection = selectedSection ?? activeProject.sections[0];
+  const renderedSections = previewSection
+    ? renderSectionFragment(activeProject, previewSection)
+    : "";
   const previewHtml = createPreviewDocument(
     activeProject,
     renderedSections,
-    "body { font-family: Georgia, serif; line-height: 1.55; padding: 2rem; }"
+    "body { font-family: Georgia, serif; line-height: 1.55; padding: 2rem; }",
   );
+
+  function updateProject(recipe: (project: BookProject) => BookProject): void {
+    setActiveProject((currentProject) => ({
+      ...recipe(currentProject),
+      updatedAt: new Date().toISOString(),
+    }));
+  }
+
+  function handleMetadataChange(metadata: BookProject["metadata"]): void {
+    updateProject((project) => ({
+      ...project,
+      metadata: {
+        ...project.metadata,
+        ...metadata,
+      },
+    }));
+  }
+
+  function handleSectionChange(section: BookSection): void {
+    updateProject((project) => ({
+      ...project,
+      sections: project.sections.map((candidate) =>
+        candidate.id === section.id ? section : candidate,
+      ),
+    }));
+  }
 
   function handleImported(result: ImportCompletion): void {
     if (result.kind === "docx") {
@@ -65,7 +113,9 @@ export function App() {
       return;
     }
 
-    const placeholderProject = createImportedMarkdownProject(result.response.title ?? result.response.project);
+    const placeholderProject = createImportedMarkdownProject(
+      result.response.title ?? result.response.project,
+    );
     setActiveProject(placeholderProject);
     setImportedProjectPath(result.response.project);
     setSelectedSectionId(undefined);
@@ -97,7 +147,14 @@ export function App() {
         </section>
         <aside className="stack" aria-label="Project controls">
           <ImportActions onImported={handleImported} />
-          <MetadataPanel metadata={activeProject.metadata} />
+          <MetadataPanel
+            metadata={activeProject.metadata}
+            onChange={handleMetadataChange}
+          />
+          <SectionEditor
+            section={selectedSection}
+            onChange={handleSectionChange}
+          />
           <ImportReview
             report={importReport ?? undefined}
             projectPath={importedProjectPath}
