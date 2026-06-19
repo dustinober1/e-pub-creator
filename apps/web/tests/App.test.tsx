@@ -9,6 +9,13 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Formatting Stress Book" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Book Outline" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Themes" })).toBeInTheDocument();
-    expect(screen.getByTitle("EPUB XHTML preview")).toBeInTheDocument();
+
+    const preview = screen.getByTitle("EPUB XHTML preview");
+    expect(preview).toBeInTheDocument();
+    expect(preview).toHaveAttribute("srcdoc", expect.stringContaining("<!doctype html>"));
+    expect(preview).toHaveAttribute(
+      "srcdoc",
+      expect.stringContaining("body { font-family: Georgia, serif; line-height: 1.55; padding: 2rem; }")
+    );
   });
 });

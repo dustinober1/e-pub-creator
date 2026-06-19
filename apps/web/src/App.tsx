@@ -1,5 +1,6 @@
 import { createBookProject, createSection, createTextBlock } from "@epub-creator/core/src/book";
 import { renderSectionXhtml } from "@epub-creator/renderer/src/html";
+import { createPreviewDocument } from "@epub-creator/renderer/src/preview";
 import { BookOutline } from "./components/BookOutline";
 import { ImportReview } from "./components/ImportReview";
 import { MetadataPanel } from "./components/MetadataPanel";
@@ -32,7 +33,12 @@ const sampleProject = (() => {
 
 export function App() {
   const previewSection = sampleProject.sections[0];
-  const previewXhtml = previewSection ? renderSectionXhtml(sampleProject, previewSection) : "";
+  const renderedSections = previewSection ? renderSectionXhtml(sampleProject, previewSection) : "";
+  const previewHtml = createPreviewDocument(
+    sampleProject,
+    renderedSections,
+    "body { font-family: Georgia, serif; line-height: 1.55; padding: 2rem; }"
+  );
 
   return (
     <main className="app-shell">
@@ -51,7 +57,7 @@ export function App() {
             <h2 id="preview-heading">Preview</h2>
             <span>{previewSection?.title}</span>
           </div>
-          <PreviewFrame srcDoc={previewXhtml} />
+          <PreviewFrame srcDoc={previewHtml} />
         </section>
         <aside className="stack" aria-label="Project controls">
           <MetadataPanel metadata={sampleProject.metadata} />
