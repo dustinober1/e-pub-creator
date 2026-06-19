@@ -67,6 +67,25 @@ importers:
         specifier: ^7.0.0
         version: 7.3.5(@types/node@24.13.2)
 
+  packages/cli:
+    dependencies:
+      '@epub-creator/core':
+        specifier: workspace:*
+        version: link:../core
+      '@epub-creator/epub':
+        specifier: workspace:*
+        version: link:../epub
+      '@epub-creator/importers':
+        specifier: workspace:*
+        version: link:../importers
+      '@epub-creator/validation':
+        specifier: workspace:*
+        version: link:../validation
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
   packages/core:
     devDependencies:
       typescript:
