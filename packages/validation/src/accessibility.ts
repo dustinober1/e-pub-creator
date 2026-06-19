@@ -27,7 +27,7 @@ export function validateAccessibility(project: BookProject): ValidationReport {
 
   if (
     project.sections.some((section) => section.role === "body") &&
-    !project.sections.some((section) => section.includeInToc)
+    !project.sections.some((section) => section.role === "body" && section.includeInToc)
   ) {
     issues.push({
       severity: "error",
