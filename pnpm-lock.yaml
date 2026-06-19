@@ -47,6 +47,9 @@ importers:
       '@epub-creator/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@epub-creator/epub':
+        specifier: workspace:*
+        version: link:../../packages/epub
       '@epub-creator/importers':
         specifier: workspace:*
         version: link:../../packages/importers

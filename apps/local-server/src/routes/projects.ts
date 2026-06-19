@@ -1,8 +1,8 @@
-import { copyProjectAssetSources, type BookProject, writeProjectFolder } from "@epub-creator/core";
+import { assertBookProject, copyProjectAssetSources, type BookProject, writeProjectFolder } from "@epub-creator/core";
+import { createEpubPackage, writeEpubFile } from "@epub-creator/epub";
 import { importDocx, importDocxBuffer, importMarkdown } from "@epub-creator/importers";
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
-import { createEpubPackage, writeEpubFile } from "../../../../packages/epub/src/index";
 
 const DOCX_UPLOAD_SIZE_LIMIT = 25 * 1024 * 1024;
 const EXPORT_CSS = "body { line-height: 1.55; }";
@@ -54,6 +54,7 @@ export async function importProjectRoute(request: Request): Promise<Response> {
       project,
       status: "imported",
       title: imported.project.metadata.title,
+      bookProject: imported.project,
       sectionCount: imported.project.sections.length,
       warningCount: imported.report.warnings.length
     });
@@ -149,12 +150,17 @@ export async function saveProjectRoute(request: Request): Promise<Response> {
   const bookProject = body.bookProject as unknown as BookProject;
 
   try {
+    assertBookProject(bookProject);
     await writeProjectFolder(project, bookProject);
     await copyProjectAssetSources(project, bookProject);
 
     return Response.json({ status: "saved", project });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    if (message.startsWith("Invalid project content:") || message.startsWith("Unsupported project format version:")) {
+      return Response.json({ error: "--bookProject is invalid." }, { status: 400 });
+    }
+
     return Response.json({ error: `Save failed: ${message}` }, { status: 400 });
   }
 }
@@ -196,6 +202,7 @@ export async function exportProjectRoute(request: Request): Promise<Response> {
   const bookProject = body.bookProject as unknown as BookProject;
 
   try {
+    assertBookProject(bookProject);
     await writeProjectFolder(project, bookProject);
     await copyProjectAssetSources(project, bookProject);
 
@@ -214,6 +221,10 @@ export async function exportProjectRoute(request: Request): Promise<Response> {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    if (message.startsWith("Invalid project content:") || message.startsWith("Unsupported project format version:")) {
+      return Response.json({ error: "--bookProject is invalid." }, { status: 400 });
+    }
+
     return Response.json({ error: `Export failed: ${message}` }, { status: 400 });
   }
 }

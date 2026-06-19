@@ -104,6 +104,7 @@ describe("project import route", () => {
       const app = createServerApp();
       const response = await app.handle(importRequest(JSON.stringify({ source: ` ${source} `, project: ` ${project} ` })));
       const body = (await response.json()) as {
+        bookProject: { metadata: { title: string }; sections: unknown[] };
         project: string;
         sectionCount: number;
         source: string;
@@ -118,6 +119,19 @@ describe("project import route", () => {
 
       expect(response.status).toBe(200);
       expect(body).toEqual({
+        bookProject: {
+          ...projectContent,
+          assets: [],
+          createdAt: expect.any(String),
+          formatVersion: 1,
+          id: expect.any(String),
+          metadata: expect.objectContaining({ title: "Imported Book" }),
+          theme: {
+            overrides: {},
+            packageId: "classic-literary"
+          },
+          updatedAt: expect.any(String)
+        },
         project,
         sectionCount: 1,
         source,
@@ -474,5 +488,81 @@ describe("project save and export routes", () => {
     await expect(invalidExport.json()).resolves.toEqual({
       error: "--output is required."
     });
+  });
+
+  it("rejects structurally invalid book projects during save without writing project files", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "epub-server-invalid-save-"));
+
+    try {
+      const projectPath = join(directory, "InvalidSave.epubproj");
+      const app = createServerApp();
+      const response = await app.handle(
+        saveRequest(
+          JSON.stringify({
+            project: projectPath,
+            bookProject: {
+              metadata: { title: "Broken Book" },
+              sections: []
+            }
+          })
+        )
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "--bookProject is invalid."
+      });
+      await expect(stat(join(projectPath, "manifest.json"))).rejects.toMatchObject({
+        code: "ENOENT"
+      });
+      await expect(stat(join(projectPath, "content", "book.json"))).rejects.toMatchObject({
+        code: "ENOENT"
+      });
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects structurally invalid book projects during export without writing project files", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "epub-server-invalid-export-"));
+
+    try {
+      const projectPath = join(directory, "InvalidExport.epubproj");
+      const outputPath = join(directory, "dist", "Invalid.epub");
+      const app = createServerApp();
+      const response = await app.handle(
+        exportRequest(
+          JSON.stringify({
+            project: projectPath,
+            output: outputPath,
+            profile: "portable-epub3",
+            bookProject: {
+              id: "book-bad",
+              formatVersion: 1,
+              metadata: { title: "Broken Export" },
+              sections: [],
+              assets: [],
+              theme: { packageId: "classic-literary", overrides: {} }
+            }
+          })
+        )
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "--bookProject is invalid."
+      });
+      await expect(stat(join(projectPath, "manifest.json"))).rejects.toMatchObject({
+        code: "ENOENT"
+      });
+      await expect(stat(join(projectPath, "content", "book.json"))).rejects.toMatchObject({
+        code: "ENOENT"
+      });
+      await expect(stat(outputPath)).rejects.toMatchObject({
+        code: "ENOENT"
+      });
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 });

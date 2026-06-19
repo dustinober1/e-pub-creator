@@ -87,6 +87,25 @@ vi.mock("../src/components/ImportActions", () => ({
               source: "/tmp/book.md",
               status: "imported",
               title: "Markdown Import Summary",
+              bookProject: {
+                ...createBookProject({
+                  title: "Markdown Import Summary",
+                  author: "Markdown Author",
+                  language: "en",
+                }),
+                sections: [
+                  createSection({
+                    title: "Markdown Chapter",
+                    role: "body",
+                    blocks: [
+                      createTextBlock(
+                        "paragraph",
+                        "Markdown import body text.",
+                      ),
+                    ],
+                  }),
+                ],
+              },
             },
           })
         }
@@ -193,7 +212,7 @@ describe("App", () => {
     );
   });
 
-  it("replaces prior content with a neutral markdown import summary state", async () => {
+  it("uses the imported markdown project state when markdown import provides it", async () => {
     render(<App />);
 
     fireEvent.click(
@@ -212,34 +231,21 @@ describe("App", () => {
     expect(
       await screen.findByRole("heading", { name: "Markdown Import Summary" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("/ und")).toBeInTheDocument();
+    expect(screen.getByText("Markdown Author / en")).toBeInTheDocument();
     expect(
       screen.getByText("Project folder: /tmp/MarkdownImport.epubproj"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Imported project summary loaded. Detailed section review is not available for this source yet.",
-      ),
-    ).toBeInTheDocument();
+      screen.getByRole("button", { name: "Markdown Chapter" }),
+    ).toHaveAttribute("aria-current", "true");
     expect(
-      screen.getByText(
-        "Select a section to edit its title, role, and text blocks.",
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText("One image is missing alt text."),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Imported Opening" }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Section title")).not.toBeInTheDocument();
+      screen.getByLabelText("Section title"),
+    ).toHaveValue("Markdown Chapter");
 
     const preview = screen.getByTitle("EPUB XHTML preview");
     const srcDoc = preview.getAttribute("srcdoc") ?? "";
+    expect(srcDoc).toContain("Markdown import body text.");
     expect(srcDoc).not.toContain("Fresh imported preview content.");
-    expect(srcDoc).not.toContain(
-      "The first paragraph tests ordinary prose flow and margins in the preview pane.",
-    );
   });
 
   it("updates visible header text when metadata is edited", () => {

@@ -83,7 +83,7 @@ function assertManifestPath(
   }
 }
 
-function assertBookProject(value: unknown): asserts value is BookProject {
+export function assertBookProject(value: unknown): asserts value is BookProject {
   if (!isRecord(value)) {
     throw new Error("Invalid project content: expected a JSON object");
   }

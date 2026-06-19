@@ -15,6 +15,7 @@ export async function getHealth(): Promise<HealthResponse> {
 }
 
 export interface ImportProjectResponse {
+  bookProject?: BookProject;
   project: string;
   sectionCount?: number;
   source: string;
