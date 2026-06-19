@@ -1,5 +1,5 @@
 import { healthRoute } from "./routes/health";
-import { projectsRoute } from "./routes/projects";
+import { importProjectRoute, projectsRoute } from "./routes/projects";
 import { themesRoute } from "./routes/themes";
 
 export interface ServerApp {
@@ -25,6 +25,14 @@ export function createServerApp(): ServerApp {
         }
 
         return themesRoute();
+      }
+
+      if (pathname === "/api/projects/import") {
+        if (request.method !== "POST") {
+          return methodNotAllowed();
+        }
+
+        return importProjectRoute(request);
       }
 
       if (pathname === "/api/projects") {

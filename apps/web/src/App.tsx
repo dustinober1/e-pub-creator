@@ -2,6 +2,7 @@ import { createBookProject, createSection, createTextBlock } from "@epub-creator
 import { renderSectionFragment } from "@epub-creator/renderer/html";
 import { createPreviewDocument } from "@epub-creator/renderer/preview";
 import { BookOutline } from "./components/BookOutline";
+import { ImportActions } from "./components/ImportActions";
 import { ImportReview } from "./components/ImportReview";
 import { MetadataPanel } from "./components/MetadataPanel";
 import { PreviewFrame } from "./components/PreviewFrame";
@@ -60,6 +61,7 @@ export function App() {
           <PreviewFrame srcDoc={previewHtml} />
         </section>
         <aside className="stack" aria-label="Project controls">
+          <ImportActions />
           <MetadataPanel metadata={sampleProject.metadata} />
           <ImportReview />
           <ThemeGallery />

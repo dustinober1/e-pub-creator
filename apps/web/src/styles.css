@@ -97,6 +97,27 @@ button {
   line-height: 1.45;
 }
 
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.button-row button {
+  min-height: 40px;
+  border: 1px solid #cfc7bb;
+  border-radius: 4px;
+  background: #fbfaf7;
+  color: #1f2528;
+  cursor: pointer;
+  padding: 8px 10px;
+}
+
+.button-row button:hover {
+  border-color: #8c8173;
+  background: #f3efe7;
+}
+
 .metadata-list {
   display: grid;
   gap: 10px;
