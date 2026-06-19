@@ -6,6 +6,7 @@ import { ImportActions } from "./components/ImportActions";
 import { ImportReview } from "./components/ImportReview";
 import { MetadataPanel } from "./components/MetadataPanel";
 import { PreviewFrame } from "./components/PreviewFrame";
+import { ThemeEditor } from "./components/ThemeEditor";
 import { ThemeGallery } from "./components/ThemeGallery";
 import { ValidationPanel } from "./components/ValidationPanel";
 
@@ -65,6 +66,7 @@ export function App() {
           <MetadataPanel metadata={sampleProject.metadata} />
           <ImportReview />
           <ThemeGallery />
+          <ThemeEditor />
           <ValidationPanel />
         </aside>
       </section>

@@ -1,3 +1,29 @@
+export const SUPPORTED_THEME_COMPONENT_VARIANTS = {
+  chapterTitle: ["classic", "ornamented", "minimal", "rule"],
+  sceneBreak: ["asterism", "ornament", "rule", "space"],
+  quote: ["indented", "left-rule", "boxed-light"],
+  epigraph: ["centered", "indented", "ornamented"],
+  letterBlock: ["classic", "bordered", "shaded"],
+  emailBlock: ["headered", "compact", "boxed"],
+  messageBlock: ["threaded", "bubble", "plain"],
+  image: ["captioned", "full-width", "framed"],
+  titlePage: ["classic", "minimal", "stacked"],
+  copyrightPage: ["standard", "compact", "publisher"],
+  dedicationPage: ["centered", "minimal", "ornamented"],
+  alsoByPage: ["list", "grouped", "compact"],
+  aboutAuthorPage: ["bio", "portrait", "compact"],
+  newsletterPage: ["signup", "letter", "minimal"]
+} as const;
+
+export type ThemeComponentKey = keyof typeof SUPPORTED_THEME_COMPONENT_VARIANTS;
+
+export type ThemeComponentVariant<Key extends ThemeComponentKey = ThemeComponentKey> =
+  (typeof SUPPORTED_THEME_COMPONENT_VARIANTS)[Key][number];
+
+export type ThemeComponentMap = Partial<{
+  [Key in ThemeComponentKey]: ThemeComponentVariant<Key>[];
+}>;
+
 export interface ThemeFontLicense {
   name: string;
   spdxId: string;
@@ -23,7 +49,7 @@ export interface ThemePackage {
   };
   tokens: Record<string, string>;
   fonts: ThemeFont[];
-  components: Record<string, string[]>;
+  components: ThemeComponentMap;
 }
 
 export function validateThemePackage(value: unknown): ThemePackage {
@@ -91,6 +117,23 @@ export function validateThemePackage(value: unknown): ThemePackage {
     )
   ) {
     throw new Error("Theme components must be arrays of non-empty strings.");
+  }
+
+  const components = theme.components as Record<string, string[]>;
+  const supportedComponentVariants = SUPPORTED_THEME_COMPONENT_VARIANTS as Record<string, readonly string[]>;
+
+  for (const [componentName, variants] of Object.entries(components)) {
+    const supportedVariants = supportedComponentVariants[componentName];
+
+    if (!supportedVariants) {
+      throw new Error(`Unsupported theme component: ${componentName}`);
+    }
+
+    for (const variant of variants) {
+      if (!supportedVariants.includes(variant)) {
+        throw new Error(`Unsupported theme component variant: ${componentName}.${variant}`);
+      }
+    }
   }
 
   return theme as ThemePackage;

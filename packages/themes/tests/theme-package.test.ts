@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createThemeRegistry, findTheme } from "../src/theme-registry";
-import { validateThemePackage } from "../src/theme-package";
+import { SUPPORTED_THEME_COMPONENT_VARIANTS, validateThemePackage } from "../src/theme-package";
 
 const validThemePackage = {
   id: "classic-literary",
@@ -190,6 +190,47 @@ describe("theme packages", () => {
         }
       })
     ).toThrow("Theme components must be arrays of non-empty strings.");
+  });
+
+  it("exports the supported marketplace component variant contract", () => {
+    expect(SUPPORTED_THEME_COMPONENT_VARIANTS).toMatchObject({
+      chapterTitle: expect.arrayContaining(["classic", "ornamented", "minimal"]),
+      sceneBreak: expect.arrayContaining(["asterism", "ornament", "rule"]),
+      quote: expect.arrayContaining(["indented", "left-rule", "boxed-light"]),
+      epigraph: expect.arrayContaining(["centered"]),
+      letterBlock: expect.arrayContaining(["classic"]),
+      emailBlock: expect.arrayContaining(["headered"]),
+      messageBlock: expect.arrayContaining(["threaded"]),
+      image: expect.arrayContaining(["captioned"]),
+      titlePage: expect.arrayContaining(["classic"]),
+      copyrightPage: expect.arrayContaining(["standard"]),
+      dedicationPage: expect.arrayContaining(["centered"]),
+      alsoByPage: expect.arrayContaining(["list"]),
+      aboutAuthorPage: expect.arrayContaining(["bio"]),
+      newsletterPage: expect.arrayContaining(["signup"])
+    });
+  });
+
+  it("rejects unsupported component keys or variants", () => {
+    expect(() =>
+      validateThemePackage({
+        ...validThemePackage,
+        components: {
+          ...validThemePackage.components,
+          unknownBlock: ["classic"]
+        }
+      })
+    ).toThrow("Unsupported theme component: unknownBlock");
+
+    expect(() =>
+      validateThemePackage({
+        ...validThemePackage,
+        components: {
+          ...validThemePackage.components,
+          quote: ["pull-quote"]
+        }
+      })
+    ).toThrow("Unsupported theme component variant: quote.pull-quote");
   });
 
   it("rejects theme asset paths that are not bundle-local relative paths", () => {

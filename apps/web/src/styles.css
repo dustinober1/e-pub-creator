@@ -146,6 +146,10 @@ button {
   gap: 8px;
 }
 
+.theme-actions {
+  margin-bottom: 10px;
+}
+
 .theme-button {
   min-height: 44px;
   border: 1px solid #cfc7bb;
@@ -161,6 +165,42 @@ button {
 .theme-button:hover {
   border-color: #8c8173;
   background: #f3efe7;
+}
+
+.theme-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.theme-editor h2 {
+  margin-bottom: 0;
+}
+
+.theme-editor-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.theme-editor-field {
+  display: grid;
+  gap: 6px;
+  color: #485256;
+  font-size: 13px;
+}
+
+.theme-editor-field select,
+.theme-editor-field input[type="range"] {
+  width: 100%;
+}
+
+.theme-editor-field select {
+  min-height: 38px;
+  border: 1px solid #cfc7bb;
+  border-radius: 4px;
+  background: #fbfaf7;
+  color: #1f2528;
+  font: inherit;
+  padding: 6px 8px;
 }
 
 .preview-panel {
