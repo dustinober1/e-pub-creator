@@ -1,7 +1,7 @@
 export interface ThemeFontLicense {
   name: string;
-  spdxId?: string;
-  url?: string;
+  spdxId: string;
+  url: string;
 }
 
 export interface ThemeFont {
@@ -40,15 +40,23 @@ export function validateThemePackage(value: unknown): ThemePackage {
     }
   }
 
-  if (!theme.preview?.thumbnailPath || !theme.preview.sampleText) {
+  if (!isNonEmptyString(theme.preview?.thumbnailPath) || !isNonEmptyString(theme.preview.sampleText)) {
     throw new Error("Theme preview metadata is required.");
   }
 
   for (const font of theme.fonts ?? []) {
-    if (!font.license?.name) {
-      throw new Error(`Font license metadata is required for ${font.family}.`);
+    if (
+      !isNonEmptyString(font.license?.name) ||
+      !isNonEmptyString(font.license.spdxId) ||
+      !isNonEmptyString(font.license.url)
+    ) {
+      throw new Error(`Complete font license metadata is required for ${font.family}.`);
     }
   }
 
   return theme;
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim() !== "";
 }
