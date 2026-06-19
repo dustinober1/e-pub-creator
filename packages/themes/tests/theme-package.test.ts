@@ -229,6 +229,46 @@ describe("theme packages", () => {
       })
     ).toThrow("Theme asset path must be bundle-local: fonts[0].file");
   });
+
+  it("rejects backslash separators in cssPath", () => {
+    expect(() =>
+      validateThemePackage({
+        ...validThemePackage,
+        cssPath: "..\\theme.css"
+      })
+    ).toThrow("Theme asset path must be bundle-local: cssPath");
+  });
+
+  it("rejects backslash separators in preview thumbnail paths", () => {
+    expect(() =>
+      validateThemePackage({
+        ...validThemePackage,
+        preview: {
+          ...validThemePackage.preview,
+          thumbnailPath: "previews\\preview.png"
+        }
+      })
+    ).toThrow("Theme asset path must be bundle-local: preview.thumbnailPath");
+  });
+
+  it("rejects backslash traversal in font files", () => {
+    expect(() =>
+      validateThemePackage({
+        ...validThemePackage,
+        fonts: [
+          {
+            family: "Libre Baskerville",
+            file: "fonts\\..\\evil.ttf",
+            license: {
+              name: "OFL-1.1",
+              spdxId: "OFL-1.1",
+              url: "https://openfontlicense.org"
+            }
+          }
+        ]
+      })
+    ).toThrow("Theme asset path must be bundle-local: fonts[0].file");
+  });
 });
 
 describe("theme registry", () => {

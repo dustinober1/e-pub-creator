@@ -111,7 +111,7 @@ function assertBundleLocalPath(value: string | undefined, fieldName: string): vo
 }
 
 function isBundleLocalPath(value: string): boolean {
-  if (!isNonEmptyString(value) || value.startsWith("/") || value.startsWith("\\") || /^[a-z][a-z0-9+.-]*:/i.test(value)) {
+  if (!isNonEmptyString(value) || value.startsWith("/") || value.includes("\\") || /^[a-z][a-z0-9+.-]*:/i.test(value)) {
     return false;
   }
 
