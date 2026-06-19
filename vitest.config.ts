@@ -20,7 +20,7 @@ export default defineConfig({
           name: "web",
           environment: "jsdom",
           setupFiles: ["./apps/web/tests/setup.ts"],
-          include: ["apps/web/tests/**/*.test.tsx"]
+          include: ["apps/web/tests/**/*.test.{ts,tsx}"]
         }
       }
     ]
