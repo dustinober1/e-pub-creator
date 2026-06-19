@@ -3,6 +3,7 @@ export type EntityPrefix =
   | "section"
   | "block"
   | "asset"
+  | "publication"
   | "theme"
   | "snapshot"
   | "report";

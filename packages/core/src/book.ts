@@ -1,3 +1,4 @@
+import type { ProjectAsset } from "./assets";
 import { createId } from "./ids";
 
 export type SectionRole = "front" | "body" | "back";
@@ -44,15 +45,49 @@ export interface BlockStyleOverride {
   tokens?: Record<string, string>;
 }
 
-export interface TextBlock {
+export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
+
+export type PlainTextBlockKind = Exclude<TextBlockKind, "heading" | "image">;
+
+export interface TextBlockBase<K extends TextBlockKind> {
   id: string;
-  kind: TextBlockKind;
+  kind: K;
   text: string;
-  level?: 1 | 2 | 3 | 4 | 5 | 6;
-  assetId?: string;
   noteId?: string;
   style?: BlockStyleOverride;
 }
+
+export interface PlainTextBlock extends TextBlockBase<PlainTextBlockKind> {}
+
+export interface HeadingTextBlock extends TextBlockBase<"heading"> {
+  level: HeadingLevel;
+}
+
+export interface ImageTextBlock extends TextBlockBase<"image"> {
+  assetId: string;
+}
+
+export type TextBlock = PlainTextBlock | HeadingTextBlock | ImageTextBlock;
+
+export interface TextBlockCommonInput {
+  noteId?: string;
+  style?: BlockStyleOverride;
+}
+
+export type PlainTextBlockInput = TextBlockCommonInput;
+
+export interface HeadingTextBlockInput extends TextBlockCommonInput {
+  level: HeadingLevel;
+}
+
+export interface ImageTextBlockInput extends TextBlockCommonInput {
+  assetId: string;
+}
+
+type TextBlockCreationInput = TextBlockCommonInput & {
+  level?: HeadingLevel;
+  assetId?: string;
+};
 
 export interface BookSection {
   id: string;
@@ -71,6 +106,7 @@ export interface BookProject {
   formatVersion: 1;
   metadata: BookMetadata;
   sections: BookSection[];
+  assets: ProjectAsset[];
   theme: {
     packageId: string;
     variant?: string;
@@ -84,6 +120,7 @@ export function createBookProject(input: {
   title: string;
   author: string;
   language: string;
+  identifier?: string;
 }): BookProject {
   const now = new Date().toISOString();
 
@@ -97,9 +134,10 @@ export function createBookProject(input: {
       contributors: [],
       keywords: [],
       categories: [],
-      identifier: createId("book")
+      identifier: input.identifier ?? createId("publication")
     },
     sections: [],
+    assets: [],
     theme: {
       packageId: "classic-literary",
       overrides: {}
@@ -125,14 +163,25 @@ export function createSection(input: {
 }
 
 export function createTextBlock(
+  kind: "heading",
+  text: string,
+  input: HeadingTextBlockInput
+): HeadingTextBlock;
+export function createTextBlock(kind: "image", text: string, input: ImageTextBlockInput): ImageTextBlock;
+export function createTextBlock(
+  kind: PlainTextBlockKind,
+  text: string,
+  input?: PlainTextBlockInput
+): PlainTextBlock;
+export function createTextBlock(
   kind: TextBlockKind,
   text: string,
-  input: Partial<Omit<TextBlock, "id" | "kind" | "text">> = {}
+  input: TextBlockCreationInput = {}
 ): TextBlock {
   return {
     id: createId("block"),
     kind,
     text,
     ...input
-  };
+  } as TextBlock;
 }
