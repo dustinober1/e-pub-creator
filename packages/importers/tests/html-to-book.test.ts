@@ -214,7 +214,7 @@ describe("importDocx", () => {
       messages: []
     });
 
-    await importDocxBuffer(buffer, {
+    const result = await importDocxBuffer(buffer, {
       sourcePath: "sample.docx",
       author: "Sample Author",
       language: "en"
@@ -227,6 +227,7 @@ describe("importDocx", () => {
         ignoreEmptyParagraphs: true
       })
     );
+    expect(result.project.sections).toHaveLength(1);
   });
 
   it("preserves mammoth messages as import warnings", async () => {
