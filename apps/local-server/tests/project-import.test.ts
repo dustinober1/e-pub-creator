@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const importDocxBufferMock = vi.hoisted(() => vi.fn());
 
@@ -16,6 +16,10 @@ vi.mock("@epub-creator/importers", async () => {
 
 import { createServerApp } from "../src/server";
 
+afterEach(() => {
+  importDocxBufferMock.mockReset();
+});
+
 function importRequest(body: string): Request {
   return new Request("http://127.0.0.1/api/projects/import", {
     method: "POST",
@@ -29,6 +33,29 @@ function importUploadRequest(form: FormData): Request {
     method: "POST",
     body: form
   });
+}
+
+function createImportedDocxResult(title = "Uploaded Book") {
+  return {
+    project: {
+      metadata: {
+        title
+      },
+      sections: [
+        {
+          id: "section-1",
+          title: "Chapter One",
+          blocks: []
+        }
+      ],
+      assets: [],
+      notes: []
+    },
+    report: {
+      warnings: [{ code: "UNCLASSIFIED_BLOCK", message: "warning" }],
+      stats: { durationMs: 0 }
+    }
+  };
 }
 
 describe("project import route", () => {
@@ -151,26 +178,7 @@ describe("project import upload route", () => {
 
     try {
       const project = join(directory, "Draft.epubproj");
-      importDocxBufferMock.mockResolvedValueOnce({
-        project: {
-          metadata: {
-            title: "Uploaded Book"
-          },
-          sections: [
-            {
-              id: "section-1",
-              title: "Chapter One",
-              blocks: []
-            }
-          ],
-          assets: [],
-          notes: []
-        },
-        report: {
-          warnings: [{ code: "UNCLASSIFIED_BLOCK", message: "warning" }],
-          stats: { durationMs: 0 }
-        }
-      });
+      importDocxBufferMock.mockResolvedValueOnce(createImportedDocxResult());
 
       const form = new FormData();
       form.set("file", new File([Buffer.from("docx bytes")], "book.docx"));
@@ -214,9 +222,47 @@ describe("project import upload route", () => {
       expect(projectContent.metadata.title).toBe("Uploaded Book");
       expect(projectContent.sections).toHaveLength(1);
     } finally {
-      importDocxBufferMock.mockReset();
       await rm(directory, { recursive: true, force: true });
     }
+  });
+
+  it("imports an uploaded docx without persisting when project is omitted", async () => {
+    importDocxBufferMock.mockResolvedValueOnce(createImportedDocxResult("Unpersisted Book"));
+
+    const form = new FormData();
+    form.set("file", new File([Buffer.from("docx bytes")], "book.docx"));
+    form.set("author", "Sample Author");
+    form.set("language", "en");
+
+    const app = createServerApp();
+    const response = await app.handle(importUploadRequest(form));
+    const body = (await response.json()) as {
+      bookProject: { metadata: { title: string }; sections: unknown[] };
+      report: { warnings: unknown[] };
+      sectionCount: number;
+      source: string;
+      status: string;
+      title: string;
+      warningCount: number;
+      project?: string;
+    };
+
+    expect(response.status).toBe(200);
+    expect(importDocxBufferMock).toHaveBeenCalledWith(Buffer.from("docx bytes"), {
+      sourcePath: "book.docx",
+      author: "Sample Author",
+      language: "en"
+    });
+    expect(body).toMatchObject({
+      source: "book.docx",
+      status: "imported",
+      title: "Unpersisted Book",
+      sectionCount: 1,
+      warningCount: 1
+    });
+    expect(body.bookProject.metadata.title).toBe("Unpersisted Book");
+    expect(body.report.warnings).toHaveLength(1);
+    expect(body).not.toHaveProperty("project");
   });
 
   it("rejects upload requests without a file", async () => {
@@ -252,6 +298,41 @@ describe("project import upload route", () => {
 
     expect(response.status).toBe(413);
     await expect(response.json()).resolves.toEqual({ error: "DOCX upload is too large." });
+  });
+
+  it("rejects oversized uploads from content-length before multipart parsing", async () => {
+    const app = createServerApp();
+    const response = await app.handle(
+      new Request("http://127.0.0.1/api/projects/import/upload", {
+        method: "POST",
+        body: "ignored",
+        headers: {
+          "content-length": String(25 * 1024 * 1024 + 1),
+          "content-type": "multipart/form-data; boundary=upload-boundary"
+        }
+      })
+    );
+
+    expect(response.status).toBe(413);
+    expect(importDocxBufferMock).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toEqual({ error: "DOCX upload is too large." });
+  });
+
+  it("rejects malformed multipart form data with a controlled 400", async () => {
+    const app = createServerApp();
+    const response = await app.handle(
+      new Request("http://127.0.0.1/api/projects/import/upload", {
+        method: "POST",
+        body: "--broken",
+        headers: {
+          "content-type": "multipart/form-data"
+        }
+      })
+    );
+
+    expect(response.status).toBe(400);
+    expect(importDocxBufferMock).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toEqual({ error: "Invalid multipart form data." });
   });
 
   it("rejects non-POST methods with POST allow header", async () => {

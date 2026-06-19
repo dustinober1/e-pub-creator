@@ -61,7 +61,20 @@ export async function importProjectRoute(request: Request): Promise<Response> {
 }
 
 export async function importProjectUploadRoute(request: Request): Promise<Response> {
-  const form = await request.formData();
+  const contentLength = parseContentLength(request.headers.get("content-length"));
+
+  if (contentLength !== undefined && contentLength > DOCX_UPLOAD_SIZE_LIMIT) {
+    return Response.json({ error: "DOCX upload is too large." }, { status: 413 });
+  }
+
+  let form: FormData;
+
+  try {
+    form = await request.formData();
+  } catch {
+    return Response.json({ error: "Invalid multipart form data." }, { status: 400 });
+  }
+
   const file = form.get("file");
 
   if (!(file instanceof File)) {
@@ -145,4 +158,18 @@ function readOptionalFormString(form: FormData, key: string): string | undefined
 
   const trimmed = value.trim();
   return trimmed ? trimmed : undefined;
+}
+
+function parseContentLength(value: string | null): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return undefined;
+  }
+
+  return parsed;
 }
