@@ -8,6 +8,15 @@ import {
 } from "@epub-creator/core";
 import { createImportReport, type ImportReport } from "./import-report";
 
+type HtmlTag = "h1" | "h2" | "p" | "blockquote" | "li";
+
+interface HtmlToken {
+  tag: HtmlTag;
+  html: string;
+  text: string;
+  classNames: string[];
+}
+
 export interface HtmlImportOptions {
   sourcePath: string;
   author: string;
@@ -20,14 +29,14 @@ export interface HtmlImportResult {
 }
 
 export function importHtmlFragment(html: string, options: HtmlImportOptions): HtmlImportResult {
-  const title = textOfFirst(html, "h1") ?? "Untitled Book";
+  const tokens = parseHtmlTokens(html);
+  const title = textOfFirst(tokens, "h1") ?? "Untitled Book";
   const project = createBookProject({
     title,
     author: options.author,
     language: options.language
   });
   const report = createImportReport(options.sourcePath);
-  const tokens = html.replace(/\r?\n/g, " ").match(/<(h2|p|blockquote|li)\b[^>]*>.*?<\/\1>/gi) ?? [];
 
   let currentTitle = "";
   let blocks: TextBlock[] = [];
@@ -47,10 +56,14 @@ export function importHtmlFragment(html: string, options: HtmlImportOptions): Ht
     blocks = [];
   }
 
-  for (const token of tokens) {
-    if (/^<h2\b/i.test(token)) {
+  for (const [index, token] of tokens.entries()) {
+    if (token.tag === "h1" || token.tag === "h2") {
+      if (isDocumentTitleHeading(tokens, index, title)) {
+        continue;
+      }
+
       flush();
-      currentTitle = stripTags(token);
+      currentTitle = token.text;
       continue;
     }
 
@@ -58,19 +71,32 @@ export function importHtmlFragment(html: string, options: HtmlImportOptions): Ht
       continue;
     }
 
-    if (/^<blockquote\b/i.test(token)) {
-      blocks.push(createTextBlock("epigraph", stripTags(token)));
+    if (token.tag === "blockquote") {
+      blocks.push(createTextBlock("epigraph", token.text));
       continue;
     }
 
-    if (/^<li\b/i.test(token) && /\bfootnote/i.test(token)) {
-      blocks.push(createTextBlock("footnote", stripTags(token)));
+    if (token.tag === "li" && isNoteBodyItem(token)) {
+      blocks.push(createTextBlock("footnote", stripNoteBacklinks(token.html)));
       continue;
     }
 
-    const text = stripTags(token);
-    if (text && !/^\d+$/.test(text)) {
-      blocks.push(createTextBlock("paragraph", text));
+    if (token.tag === "p" && isNoteReferenceParagraph(token)) {
+      continue;
+    }
+
+    if (token.tag === "p" && token.classNames.includes("scene-break")) {
+      blocks.push(createTextBlock("scene-break", ""));
+      continue;
+    }
+
+    if (token.tag === "p" && token.classNames.includes("letter")) {
+      blocks.push(createTextBlock("letter", token.text));
+      continue;
+    }
+
+    if (token.text && !/^\d+$/.test(token.text)) {
+      blocks.push(createTextBlock("paragraph", token.text));
     }
   }
 
@@ -78,9 +104,74 @@ export function importHtmlFragment(html: string, options: HtmlImportOptions): Ht
   return { project, report };
 }
 
-function textOfFirst(html: string, tag: string): string | undefined {
-  const match = html.match(new RegExp(`<${tag}[^>]*>(.*?)</${tag}>`, "i"));
-  return match ? stripTags(match[1] ?? "") : undefined;
+function parseHtmlTokens(html: string): HtmlToken[] {
+  const normalizedHtml = html.replace(/\r?\n/g, " ");
+  const tokenMatches = normalizedHtml.matchAll(/<(h1|h2|p|blockquote|li)\b[^>]*>.*?<\/\1>/gi);
+
+  return Array.from(tokenMatches, (match) => {
+    const tokenHtml = match[0] ?? "";
+    const tag = (match[1] ?? "p").toLocaleLowerCase() as HtmlTag;
+
+    return {
+      tag,
+      html: tokenHtml,
+      text: stripTags(tokenHtml),
+      classNames: readClassNames(tokenHtml)
+    };
+  });
+}
+
+function textOfFirst(tokens: HtmlToken[], tag: HtmlTag): string | undefined {
+  return tokens.find((token) => token.tag === tag && token.text.length > 0)?.text;
+}
+
+function isDocumentTitleHeading(tokens: HtmlToken[], index: number, title: string): boolean {
+  const token = tokens[index];
+
+  if (!token || token.tag !== "h1" || token.text !== title) {
+    return false;
+  }
+
+  const firstH1Index = tokens.findIndex((candidate) => candidate.tag === "h1" && candidate.text.length > 0);
+
+  if (index !== firstH1Index) {
+    return false;
+  }
+
+  for (let nextIndex = index + 1; nextIndex < tokens.length; nextIndex += 1) {
+    const nextToken = tokens[nextIndex];
+
+    if (!nextToken) {
+      continue;
+    }
+
+    if (nextToken.tag === "h1" || nextToken.tag === "h2") {
+      return true;
+    }
+
+    if (hasMeaningfulBodyContent(nextToken)) {
+      return false;
+    }
+  }
+
+  return false;
+}
+
+function hasMeaningfulBodyContent(token: HtmlToken): boolean {
+  if (token.tag === "p" && isNoteReferenceParagraph(token)) {
+    return false;
+  }
+
+  return token.text.length > 0 || token.classNames.includes("scene-break");
+}
+
+function readClassNames(html: string): string[] {
+  const classMatch = /\bclass\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(openingTagOf(html));
+  const classValue = classMatch?.[1] ?? classMatch?.[2] ?? classMatch?.[3] ?? "";
+  return classValue
+    .split(/\s+/)
+    .map((className) => className.trim())
+    .filter((className) => className.length > 0);
 }
 
 function stripTags(html: string): string {
@@ -90,6 +181,32 @@ function stripTags(html: string): string {
     .replace(/&amp;/g, "&")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function isNoteReferenceParagraph(token: HtmlToken): boolean {
+  return (
+    /\b(?:footnote|endnote)-ref\b/i.test(token.html) &&
+    token.text.length > 0 &&
+    /^[\s\d[\]().,:;]+$/.test(token.text)
+  );
+}
+
+function isNoteBodyItem(token: HtmlToken): boolean {
+  return /\b(?:footnote|endnote)\b/i.test(openingTagOf(token.html));
+}
+
+function stripNoteBacklinks(html: string): string {
+  const withoutBacklinkAnchors = html.replace(/<a\b[^>]*#?(?:footnote|endnote)-ref[^>]*>.*?<\/a>/gi, "");
+
+  return stripTags(withoutBacklinkAnchors)
+    .replace(/(?:↑|&uarr;|&#8593;)/gi, "")
+    .replace(/\s+([.,;:!?])/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function openingTagOf(html: string): string {
+  return html.match(/^<[^>]+>/)?.[0] ?? "";
 }
 
 function inferRole(title: string): SectionRole {
