@@ -117,11 +117,31 @@ function createBlock(
   const image = parseMarkdownImage(line);
 
   if (image) {
+    if (isRemoteUrl(image.sourcePath)) {
+      report.warnings.push({
+        code: "IMAGE_REFERENCE_FOUND",
+        message: `Remote image import is not supported yet: ${image.sourcePath}`
+      });
+
+      return createTextBlock("paragraph", line);
+    }
+
+    const imageFilename = basename(image.sourcePath);
+
+    if (!isUsableImageFilename(imageFilename)) {
+      report.warnings.push({
+        code: "IMAGE_REFERENCE_FOUND",
+        message: `Skipped image reference with invalid filename: ${image.sourcePath}`
+      });
+
+      return createTextBlock("paragraph", line);
+    }
+
     const resolvedSourcePath = resolveSourcePath(markdownSourcePath, image.sourcePath);
     const asset = createAsset({
       kind: "image",
-      projectPath: `assets/${basename(image.sourcePath)}`,
-      mediaType: inferMediaType(image.sourcePath),
+      projectPath: createImageProjectPath(project, imageFilename),
+      mediaType: inferMediaType(imageFilename),
       altText: image.altText,
       caption: image.caption,
       source: {
@@ -138,7 +158,7 @@ function createBlock(
     });
     report.warnings.push({
       code: "IMAGE_REFERENCE_FOUND",
-      message: `Imported image reference: ${image.sourcePath}`
+      message: `Imported local image reference: ${image.sourcePath}`
     });
 
     return createTextBlock("image", image.altText, { assetId: asset.id });
@@ -173,7 +193,7 @@ function parseMarkdownImage(line: string): MarkdownImage | undefined {
 }
 
 function resolveSourcePath(markdownSourcePath: string, imageSourcePath: string): string {
-  if (isAbsoluteOrRemote(imageSourcePath)) {
+  if (isAbsolutePath(imageSourcePath)) {
     return imageSourcePath;
   }
 
@@ -186,8 +206,16 @@ function resolveSourcePath(markdownSourcePath: string, imageSourcePath: string):
   return normalizePath(`${sourceDirectory}/${imageSourcePath}`);
 }
 
-function isAbsoluteOrRemote(path: string): boolean {
-  return /^(?:[a-z]+:)?\/\//i.test(path) || path.startsWith("/") || /^[a-z]:[\\/]/i.test(path);
+function isRemoteUrl(path: string): boolean {
+  return /^(?:[a-z][a-z0-9+.-]*:)?\/\//i.test(path) || (hasUriScheme(path) && !/^[a-z]:[\\/]/i.test(path));
+}
+
+function hasUriScheme(path: string): boolean {
+  return /^[a-z][a-z0-9+.-]*:/i.test(path);
+}
+
+function isAbsolutePath(path: string): boolean {
+  return path.startsWith("/") || /^[a-z]:[\\/]/i.test(path);
 }
 
 function dirname(path: string): string {
@@ -204,8 +232,35 @@ function dirname(path: string): string {
 function basename(path: string): string {
   const normalized = path.replace(/\\/g, "/").replace(/[?#].*$/, "");
   const lastSlash = normalized.lastIndexOf("/");
-  const name = lastSlash === -1 ? normalized : normalized.slice(lastSlash + 1);
-  return name.length > 0 ? name : "image";
+  return lastSlash === -1 ? normalized : normalized.slice(lastSlash + 1);
+}
+
+function isUsableImageFilename(filename: string): boolean {
+  return filename !== "" && filename !== "." && filename !== "..";
+}
+
+function createImageProjectPath(project: BookProject, filename: string): string {
+  const safeFilename = sanitizeFilename(filename);
+  const usedProjectPaths = new Set(project.assets.map((asset) => asset.projectPath));
+  let sequence = project.assets.length + 1;
+  let projectPath = "";
+
+  do {
+    projectPath = `assets/images/${sequence.toString().padStart(3, "0")}-${safeFilename}`;
+    sequence += 1;
+  } while (usedProjectPaths.has(projectPath));
+
+  return projectPath;
+}
+
+function sanitizeFilename(filename: string): string {
+  const normalized = filename.toLocaleLowerCase();
+  const extensionIndex = normalized.lastIndexOf(".");
+  const stem = extensionIndex > 0 ? normalized.slice(0, extensionIndex) : normalized;
+  const extension = extensionIndex > 0 ? normalized.slice(extensionIndex).replace(/[^.a-z0-9]/g, "") : "";
+  const safeStem = stem.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+  return `${safeStem.length > 0 ? safeStem : "image"}${extension}`;
 }
 
 function normalizePath(path: string): string {
