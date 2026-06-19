@@ -1,6 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { BookProject } from "./book";
+import { createId } from "./ids";
+import { PROJECT_FOLDER_PATHS } from "./manifest";
 
 export interface ProjectSnapshot {
   id: string;
@@ -16,8 +18,8 @@ export async function createSnapshot(
 ): Promise<ProjectSnapshot> {
   const createdAt = new Date().toISOString();
   const safeStamp = createdAt.replaceAll(":", "-").replaceAll(".", "-");
-  const filename = `${safeStamp}-${reason}.json`;
-  const snapshotDirectory = join(directory, ".snapshots");
+  const filename = `${safeStamp}-${reason}-${createId("snapshot")}.json`;
+  const snapshotDirectory = join(directory, PROJECT_FOLDER_PATHS.snapshots);
   const snapshotPath = join(snapshotDirectory, filename);
 
   await mkdir(snapshotDirectory, { recursive: true });
