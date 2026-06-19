@@ -1,0 +1,24 @@
+{
+  "id": "historical-serif",
+  "version": "0.1.0",
+  "name": "Historical Serif",
+  "description": "Classic historical styling with serif texture and restrained rules.",
+  "license": "CC-BY-4.0",
+  "cssPath": "theme.css",
+  "preview": {
+    "thumbnailPath": "preview.svg",
+    "sampleText": "Chapter One"
+  },
+  "tokens": {
+    "bodyFont": "serif",
+    "headingFont": "serif",
+    "accentColor": "#5b6440",
+    "chapterNumberStyle": "roman"
+  },
+  "fonts": [],
+  "components": {
+    "chapterTitle": ["classic", "rule"],
+    "sceneBreak": ["asterism", "rule"],
+    "quote": ["indented", "left-rule"]
+  }
+}

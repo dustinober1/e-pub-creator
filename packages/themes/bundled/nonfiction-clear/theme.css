@@ -1,0 +1,4 @@
+body { font-family: Arial, sans-serif; line-height: 1.55; color: #20262b; }
+.chapter-title { color: #315f8c; border-bottom: 2px solid #d5dde5; }
+.blockquote { border-left: 4px solid #315f8c; padding-left: 1rem; }
+.email { background: #f3f7fa; padding: 1rem; }

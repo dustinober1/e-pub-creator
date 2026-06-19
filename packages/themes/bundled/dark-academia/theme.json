@@ -1,0 +1,24 @@
+{
+  "id": "dark-academia",
+  "version": "0.1.0",
+  "name": "Dark Academia",
+  "description": "Moody literary styling with sober typography and deep accents.",
+  "license": "CC-BY-4.0",
+  "cssPath": "theme.css",
+  "preview": {
+    "thumbnailPath": "preview.svg",
+    "sampleText": "Chapter One"
+  },
+  "tokens": {
+    "bodyFont": "serif",
+    "headingFont": "serif",
+    "accentColor": "#4b5360",
+    "chapterNumberStyle": "roman"
+  },
+  "fonts": [],
+  "components": {
+    "chapterTitle": ["classic", "rule"],
+    "sceneBreak": ["rule", "asterism"],
+    "quote": ["left-rule", "indented"]
+  }
+}

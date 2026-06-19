@@ -1,0 +1,4 @@
+body { font-family: Georgia, serif; line-height: 1.65; color: #30282b; }
+.chapter-title { color: #b45f73; text-align: center; }
+.scene-break { margin: 2rem auto; width: 4rem; border-top: 1px solid #d9a8b4; }
+.epigraph, .blockquote { color: #5d454d; font-style: italic; }

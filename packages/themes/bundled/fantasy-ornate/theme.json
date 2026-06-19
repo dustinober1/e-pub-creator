@@ -1,0 +1,24 @@
+{
+  "id": "fantasy-ornate",
+  "version": "0.1.0",
+  "name": "Fantasy Ornate",
+  "description": "Decorative fantasy styling with ornamental breaks and dramatic headings.",
+  "license": "CC-BY-4.0",
+  "cssPath": "theme.css",
+  "preview": {
+    "thumbnailPath": "preview.svg",
+    "sampleText": "Chapter One"
+  },
+  "tokens": {
+    "bodyFont": "serif",
+    "headingFont": "serif",
+    "accentColor": "#6f4a8e",
+    "chapterNumberStyle": "roman"
+  },
+  "fonts": [],
+  "components": {
+    "chapterTitle": ["ornamented", "classic"],
+    "sceneBreak": ["ornament", "asterism"],
+    "quote": ["boxed-light", "indented"]
+  }
+}

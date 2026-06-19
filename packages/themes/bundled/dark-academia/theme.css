@@ -1,0 +1,4 @@
+body { font-family: Georgia, serif; line-height: 1.58; color: #202124; }
+.chapter-title { color: #4b5360; border-bottom: 1px solid #4b5360; }
+.blockquote { border-left: 3px solid #4b5360; padding-left: 1rem; }
+.epigraph { font-style: italic; color: #52565c; }

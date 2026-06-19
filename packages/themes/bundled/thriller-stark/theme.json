@@ -1,0 +1,24 @@
+{
+  "id": "thriller-stark",
+  "version": "0.1.0",
+  "name": "Thriller Stark",
+  "description": "High-contrast thriller styling with terse chapter openers.",
+  "license": "CC-BY-4.0",
+  "cssPath": "theme.css",
+  "preview": {
+    "thumbnailPath": "preview.svg",
+    "sampleText": "Chapter One"
+  },
+  "tokens": {
+    "bodyFont": "serif",
+    "headingFont": "sans-serif",
+    "accentColor": "#a32222",
+    "chapterNumberStyle": "decimal"
+  },
+  "fonts": [],
+  "components": {
+    "chapterTitle": ["rule", "minimal"],
+    "sceneBreak": ["rule", "space"],
+    "quote": ["left-rule", "indented"]
+  }
+}

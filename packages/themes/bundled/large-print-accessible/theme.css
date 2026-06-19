@@ -1,0 +1,4 @@
+body { font-family: Georgia, serif; font-size: 1.18rem; line-height: 1.8; color: #151918; }
+.chapter-title { color: #1f5f50; font-family: Arial, sans-serif; }
+.scene-break { margin: 2.25rem 0; border-top: 2px solid #1f5f50; }
+.blockquote { border-left: 4px solid #1f5f50; padding-left: 1rem; }
