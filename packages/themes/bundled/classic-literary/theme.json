@@ -1,0 +1,24 @@
+{
+  "id": "classic-literary",
+  "version": "0.1.0",
+  "name": "Classic Literary",
+  "description": "Traditional serif typography with ornamented chapter openings.",
+  "license": "CC-BY-4.0",
+  "cssPath": "theme.css",
+  "preview": {
+    "thumbnailPath": "preview.png",
+    "sampleText": "Chapter One"
+  },
+  "tokens": {
+    "bodyFont": "serif",
+    "headingFont": "serif",
+    "accentColor": "#7b4f2c",
+    "chapterNumberStyle": "roman"
+  },
+  "fonts": [],
+  "components": {
+    "chapterTitle": ["classic", "ornamented"],
+    "sceneBreak": ["asterism", "ornament"],
+    "quote": ["indented", "boxed-light"]
+  }
+}
