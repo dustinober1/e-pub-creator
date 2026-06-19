@@ -1,4 +1,4 @@
-import type { BookProject } from "@epub-creator/core";
+import type { BookProject, ProjectAsset } from "@epub-creator/core";
 
 export function renderOpf(project: BookProject): string {
   const metadata = project.metadata;
@@ -8,6 +8,10 @@ export function renderOpf(project: BookProject): string {
   );
   const spineItems = project.sections.map(
     (_section, index) => `    <itemref idref="${escapeXmlAttribute(sectionManifestId(index))}" />`
+  );
+  const assetManifestItems = getReferencedAssets(project).map(
+    (asset, index) =>
+      `    <item id="${escapeXmlAttribute(assetManifestId(index))}" href="${escapeXmlAttribute(asset.projectPath)}" media-type="${escapeXmlAttribute(asset.mediaType)}" />`
   );
 
   return [
@@ -28,6 +32,7 @@ export function renderOpf(project: BookProject): string {
     '    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav" />',
     '    <item id="css" href="styles/book.css" media-type="text/css" />',
     ...sectionManifestItems,
+    ...assetManifestItems,
     "  </manifest>",
     "  <spine>",
     ...spineItems,
@@ -44,6 +49,20 @@ function sectionManifestId(index: number): string {
 
 function sectionHref(index: number): string {
   return `sections/section-${index + 1}.xhtml`;
+}
+
+function assetManifestId(index: number): string {
+  return `asset-${index + 1}`;
+}
+
+function getReferencedAssets(project: BookProject): ProjectAsset[] {
+  const referencedAssetIds = new Set(
+    project.sections.flatMap((section) =>
+      section.blocks.flatMap((block) => (block.kind === "image" ? [block.assetId] : []))
+    )
+  );
+
+  return project.assets.filter((asset) => referencedAssetIds.has(asset.id));
 }
 
 function formatModifiedDate(value: string): string {

@@ -17,8 +17,17 @@ export interface EpubPackageFile {
   mediaType: string;
 }
 
+export interface EpubPackageAssetFile {
+  path: string;
+  projectPath: string;
+  assetId: string;
+  mediaType: string;
+  sourcePath?: string;
+}
+
 export interface EpubPackageResult {
   files: EpubPackageFile[];
+  assetFiles: EpubPackageAssetFile[];
   report: ValidationReport;
 }
 
@@ -32,7 +41,7 @@ export function createEpubPackage(project: BookProject, css: string, profile: Ex
       {
         path: "mimetype",
         content: EPUB_MIMETYPE,
-        mediaType: "text/plain"
+        mediaType: EPUB_MIMETYPE
       },
       {
         path: "META-INF/container.xml",
@@ -60,6 +69,13 @@ export function createEpubPackage(project: BookProject, css: string, profile: Ex
         mediaType: "application/xhtml+xml"
       }))
     ],
+    assetFiles: project.assets.map((asset) => ({
+      path: `EPUB/${asset.projectPath}`,
+      projectPath: asset.projectPath,
+      assetId: asset.id,
+      mediaType: asset.mediaType,
+      sourcePath: asset.source?.path
+    })),
     report
   };
 }
