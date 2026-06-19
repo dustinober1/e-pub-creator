@@ -36,7 +36,11 @@ export interface UploadImportReport {
   }>;
 }
 
-export interface UploadDocxProjectResponse extends ImportProjectResponse {
+export interface UploadImportSummaryResponse extends Omit<ImportProjectResponse, "project"> {
+  project?: string;
+}
+
+export interface UploadDocxProjectResponse extends UploadImportSummaryResponse {
   bookProject: BookProject;
   report: UploadImportReport;
 }
