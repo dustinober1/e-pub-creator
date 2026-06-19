@@ -1,0 +1,141 @@
+{
+  "id": "book_formatting_stress",
+  "formatVersion": 1,
+  "metadata": {
+    "title": "Formatting Stress Book",
+    "subtitle": "Synthetic MVP Fixture",
+    "author": "Sample Author",
+    "contributors": [
+      {
+        "name": "Fixture Editor",
+        "role": "editor"
+      }
+    ],
+    "publisher": "EPUB Creator Fixtures",
+    "language": "en",
+    "description": "A synthetic public fixture that exercises semantic formatting blocks for MVP acceptance checks.",
+    "keywords": ["fixture", "formatting", "epub"],
+    "categories": ["Fiction / General"],
+    "identifier": "urn:uuid:00000000-0000-4000-8000-000000000015",
+    "rights": "Synthetic fixture text for public testing.",
+    "publicationDate": "2026-01-01"
+  },
+  "sections": [
+    {
+      "id": "section_copyright",
+      "title": "Copyright",
+      "role": "front",
+      "includeInToc": false,
+      "blocks": [
+        {
+          "id": "block_copyright_notice",
+          "kind": "paragraph",
+          "text": "Copyright 2026 EPUB Creator Fixtures. This synthetic sample is provided for formatting tests."
+        },
+        {
+          "id": "block_title_page_heading",
+          "kind": "heading",
+          "level": 1,
+          "text": "Formatting Stress Book"
+        }
+      ]
+    },
+    {
+      "id": "section_chapter_one",
+      "title": "Chapter One",
+      "role": "body",
+      "includeInToc": true,
+      "blocks": [
+        {
+          "id": "block_chapter_one_opening",
+          "kind": "paragraph",
+          "text": "The first paragraph begins with ordinary prose so preview, export, and theme styles have a baseline block."
+        },
+        {
+          "id": "block_chapter_one_scene_break",
+          "kind": "scene-break",
+          "text": ""
+        },
+        {
+          "id": "block_chapter_one_epigraph",
+          "kind": "epigraph",
+          "text": "A short line set apart before the next movement."
+        },
+        {
+          "id": "block_chapter_one_quote",
+          "kind": "blockquote",
+          "text": "The quoted passage uses a separate semantic block so indentation and spacing can be verified."
+        },
+        {
+          "id": "block_chapter_one_letter",
+          "kind": "letter",
+          "text": "Dear Reader,\n\nThis synthetic letter checks preserved spacing and specialized block styling.\n\nSincerely,\nA Fixture"
+        },
+        {
+          "id": "block_chapter_one_email",
+          "kind": "email",
+          "text": "From: editor@example.test\nTo: author@example.test\nSubject: Formatting pass\n\nPlease review the semantic blocks before export."
+        },
+        {
+          "id": "block_chapter_one_message",
+          "kind": "message",
+          "text": "Author: Did the image render?\nEditor: Yes, with alt text and a stable asset ID."
+        },
+        {
+          "id": "block_chapter_one_image",
+          "kind": "image",
+          "text": "A simple sample plate used by the formatting stress fixture.",
+          "assetId": "asset_sample_plate",
+          "style": {
+            "variant": "centered",
+            "cssClass": "image-centered"
+          }
+        },
+        {
+          "id": "block_chapter_one_closing",
+          "kind": "paragraph",
+          "text": "The chapter closes with another paragraph after the specialized blocks."
+        }
+      ]
+    },
+    {
+      "id": "section_about_author",
+      "title": "About the Author",
+      "role": "back",
+      "includeInToc": false,
+      "blocks": [
+        {
+          "id": "block_about_author",
+          "kind": "paragraph",
+          "text": "Sample Author is a synthetic byline used only for EPUB Creator fixtures."
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "id": "asset_sample_plate",
+      "kind": "image",
+      "projectPath": "assets/images/sample-plate.png",
+      "mediaType": "image/png",
+      "altText": "A simple geometric sample plate for formatting tests.",
+      "caption": "Sample plate",
+      "license": {
+        "name": "Synthetic fixture asset metadata",
+        "spdxId": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      }
+    }
+  ],
+  "theme": {
+    "packageId": "classic-literary",
+    "variant": "ornamented",
+    "overrides": {
+      "accentColor": "#5a6f80",
+      "bodyFont": "Georgia",
+      "headingFont": "Georgia"
+    }
+  },
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "updatedAt": "2026-01-01T00:00:00.000Z"
+}
