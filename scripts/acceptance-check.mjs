@@ -5,6 +5,10 @@ import { join } from "node:path";
 
 const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
+if (!existsSync("LICENSE") || !readFileSync("LICENSE", "utf8").includes("Apache License")) {
+  throw new Error("Expected root Apache-2.0 LICENSE file.");
+}
+
 const commands = [
   [pnpmCommand, ["test"]],
   [pnpmCommand, ["typecheck"]],

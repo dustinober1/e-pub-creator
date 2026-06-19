@@ -1,5 +1,8 @@
+import { readdir, readFile, stat } from "node:fs/promises";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createThemeRegistry, findTheme } from "../src/theme-registry";
+import { BUNDLED_THEME_CATALOG } from "../src/theme-registry";
 import { SUPPORTED_THEME_COMPONENT_VARIANTS, validateThemePackage } from "../src/theme-package";
 
 const validThemePackage = {
@@ -309,6 +312,30 @@ describe("theme packages", () => {
         ]
       })
     ).toThrow("Theme asset path must be bundle-local: fonts[0].file");
+  });
+});
+
+describe("bundled theme catalog", () => {
+  it("ships at least twelve validated themes with referenced CSS and previews", async () => {
+    const bundledDirectory = join(process.cwd(), "packages", "themes", "bundled");
+    const themeDirectories = await readdir(bundledDirectory);
+    const packages = await Promise.all(
+      themeDirectories.map(async (directory) => {
+        const themeDirectory = join(bundledDirectory, directory);
+        const raw = await readFile(join(themeDirectory, "theme.json"), "utf8");
+        const theme = validateThemePackage(JSON.parse(raw));
+
+        await expect(stat(join(themeDirectory, theme.cssPath)).then((entry) => entry.isFile())).resolves.toBe(true);
+        await expect(stat(join(themeDirectory, theme.preview.thumbnailPath)).then((entry) => entry.isFile())).resolves.toBe(
+          true
+        );
+
+        return theme;
+      })
+    );
+
+    expect(packages).toHaveLength(12);
+    expect(BUNDLED_THEME_CATALOG.map((theme) => theme.id).sort()).toEqual(packages.map((theme) => theme.id).sort());
   });
 });
 

@@ -1,0 +1,24 @@
+{
+  "id": "memoir-warm",
+  "version": "0.1.0",
+  "name": "Memoir Warm",
+  "description": "Personal nonfiction styling with warm accents and readable spacing.",
+  "license": "CC-BY-4.0",
+  "cssPath": "theme.css",
+  "preview": {
+    "thumbnailPath": "preview.svg",
+    "sampleText": "Chapter One"
+  },
+  "tokens": {
+    "bodyFont": "serif",
+    "headingFont": "sans-serif",
+    "accentColor": "#9a6138",
+    "chapterNumberStyle": "decimal"
+  },
+  "fonts": [],
+  "components": {
+    "chapterTitle": ["classic", "minimal"],
+    "sceneBreak": ["space", "asterism"],
+    "quote": ["indented", "boxed-light"]
+  }
+}

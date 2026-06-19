@@ -12,7 +12,16 @@ export async function getHealth(): Promise<HealthResponse> {
   return (await response.json()) as HealthResponse;
 }
 
-export async function importProject(source: string, project: string): Promise<{ status: string }> {
+export interface ImportProjectResponse {
+  project: string;
+  sectionCount?: number;
+  source: string;
+  status: string;
+  title?: string;
+  warningCount?: number;
+}
+
+export async function importProject(source: string, project: string): Promise<ImportProjectResponse> {
   const response = await fetch("/api/projects/import", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -24,5 +33,5 @@ export async function importProject(source: string, project: string): Promise<{ 
     throw new Error(body.error ?? `Import failed: ${response.status}`);
   }
 
-  return response.json() as Promise<{ status: string }>;
+  return response.json() as Promise<ImportProjectResponse>;
 }

@@ -47,6 +47,9 @@ importers:
       '@epub-creator/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@epub-creator/importers':
+        specifier: workspace:*
+        version: link:../../packages/importers
       '@epub-creator/themes':
         specifier: workspace:*
         version: link:../../packages/themes
@@ -106,6 +109,9 @@ importers:
       '@epub-creator/importers':
         specifier: workspace:*
         version: link:../importers
+      '@epub-creator/themes':
+        specifier: workspace:*
+        version: link:../themes
       '@epub-creator/validation':
         specifier: workspace:*
         version: link:../validation

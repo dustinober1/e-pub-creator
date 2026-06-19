@@ -13,6 +13,7 @@ describe("App", () => {
 
     const preview = screen.getByTitle("EPUB XHTML preview");
     expect(preview).toBeInTheDocument();
+    expect(preview).toHaveAttribute("sandbox", "");
     expect(preview).toHaveAttribute("srcdoc", expect.stringContaining("<!doctype html>"));
     expect(preview).toHaveAttribute(
       "srcdoc",

@@ -118,6 +118,37 @@ button {
   background: #f3efe7;
 }
 
+.import-fields {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.import-fields label {
+  display: grid;
+  gap: 6px;
+  color: #485256;
+  font-size: 13px;
+}
+
+.import-fields input {
+  min-width: 0;
+  min-height: 38px;
+  border: 1px solid #cfc7bb;
+  border-radius: 4px;
+  background: #fbfaf7;
+  color: #1f2528;
+  font: inherit;
+  padding: 6px 8px;
+}
+
+.import-status {
+  margin: 10px 0 0;
+  color: #485256;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
 .metadata-list {
   display: grid;
   gap: 10px;

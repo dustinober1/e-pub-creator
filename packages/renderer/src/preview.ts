@@ -12,7 +12,7 @@ export function createPreviewDocument(project: BookProject, bodyMarkup: string, 
     '    <meta charset="utf-8">',
     `    <title>${title}</title>`,
     "    <style>",
-    css,
+    escapeStyleContent(css),
     "    </style>",
     "  </head>",
     "  <body>",
@@ -20,4 +20,8 @@ export function createPreviewDocument(project: BookProject, bodyMarkup: string, 
     "  </body>",
     "</html>"
   ].join("\n");
+}
+
+function escapeStyleContent(css: string): string {
+  return css.replaceAll(/<\/style/gi, "<\\/style");
 }

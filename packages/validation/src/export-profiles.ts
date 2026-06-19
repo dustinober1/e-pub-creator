@@ -16,6 +16,14 @@ function createKdpWarning(token: string): ValidationIssue {
 export function validateExportProfile(profile: ExportProfile, css: string): ValidationReport {
   const issues: ValidationIssue[] = [];
 
+  if (containsActiveContentMarker(css)) {
+    issues.push({
+      severity: "error",
+      code: "CSS_ACTIVE_CONTENT_MARKER",
+      message: "CSS contains active-content markers that are not allowed in EPUB themes."
+    });
+  }
+
   if (profile === "kdp-safe") {
     const reportedTokens = new Set<string>();
     const uncommentedCss = css.replace(cssComments, "");
@@ -59,4 +67,8 @@ export function validateExportProfile(profile: ExportProfile, css: string): Vali
   }
 
   return createValidationReport(issues);
+}
+
+function containsActiveContentMarker(css: string): boolean {
+  return /<\/style\b|<script\b|javascript:/i.test(css);
 }

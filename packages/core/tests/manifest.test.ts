@@ -107,4 +107,32 @@ describe("project folder persistence", () => {
 
     await expect(readProjectFolder(directory)).rejects.toThrow("Invalid project content: metadata.title must be a string");
   });
+
+  it("rejects project assets with non-local or traversal paths", async () => {
+    const { directory, project } = await createWrittenProjectFolder();
+
+    await writeFile(
+      join(directory, "content", "book.json"),
+      `${JSON.stringify(
+        {
+          ...project,
+          assets: [
+            {
+              id: "asset_bad",
+              kind: "image",
+              projectPath: "../outside.png",
+              mediaType: "image/png",
+              altText: "Bad path"
+            }
+          ]
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    await expect(readProjectFolder(directory)).rejects.toThrow(
+      "Invalid project content: asset projectPath must be bundle-local"
+    );
+  });
 });

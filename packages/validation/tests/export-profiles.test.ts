@@ -55,6 +55,16 @@ describe("validateExportProfile", () => {
     expect(validateExportProfile("portable-epub3", ".script { font-style: italic; }").issues).toEqual([]);
     expect(validateExportProfile("portable-epub3", ".transcript { margin: 0; }").issues).toEqual([]);
   });
+
+  it("reports active content markers in theme CSS", () => {
+    const report = validateExportProfile("portable-epub3", "body{} </style><script>alert(1)</script>");
+
+    expect(report.issues).toContainEqual({
+      severity: "error",
+      code: "CSS_ACTIVE_CONTENT_MARKER",
+      message: "CSS contains active-content markers that are not allowed in EPUB themes."
+    });
+  });
 });
 
 describe("createValidationReport", () => {

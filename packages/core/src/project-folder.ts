@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { BookProject } from "./book";
 import { createManifest, PROJECT_FOLDER_PATHS, type ProjectManifest } from "./manifest";
+import { assertBundleLocalPath } from "./paths";
 
 export async function writeProjectFolder(directory: string, project: BookProject): Promise<void> {
   await mkdir(join(directory, PROJECT_FOLDER_PATHS.contentDirectory), { recursive: true });
@@ -95,6 +96,14 @@ function assertBookProject(value: unknown): asserts value is BookProject {
 
   if (!Array.isArray(value.assets)) {
     throw new Error("Invalid project content: assets must be an array");
+  }
+
+  for (const asset of value.assets) {
+    if (!isRecord(asset) || typeof asset.projectPath !== "string") {
+      throw new Error("Invalid project content: asset projectPath must be a string");
+    }
+
+    assertBundleLocalPath(asset.projectPath, "Invalid project content: asset projectPath");
   }
 
   if (!isRecord(value.theme)) {

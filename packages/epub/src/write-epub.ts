@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { assertBundleLocalPath } from "@epub-creator/core";
 import type { EpubPackageAssetFile, EpubPackageResult } from "./package-epub";
 
 const LOCAL_FILE_HEADER_SIGNATURE = 0x04034b50;
@@ -49,7 +50,7 @@ async function collectEntries(projectDirectory: string, packageResult: EpubPacka
 }
 
 async function readAsset(projectDirectory: string, assetFile: EpubPackageAssetFile): Promise<Uint8Array> {
-  assertSafeRelativePath(assetFile.projectPath, "asset project path");
+  assertBundleLocalPath(assetFile.projectPath, "asset project path");
   return readFile(join(projectDirectory, assetFile.projectPath));
 }
 
@@ -59,7 +60,7 @@ function createStoredZip(entries: ZipEntryInput[]): Uint8Array {
   let offset = 0;
 
   for (const entry of entries) {
-    assertSafeRelativePath(entry.path, "EPUB entry path");
+    assertBundleLocalPath(entry.path, "EPUB entry path");
     const data = encodeContent(entry.content);
     const name = encodeUtf8(entry.path);
     const crc32 = calculateCrc32(data);
@@ -204,16 +205,4 @@ function createCrc32Table(): Uint32Array {
   }
 
   return table;
-}
-
-function assertSafeRelativePath(value: string, fieldName: string): void {
-  if (
-    value.trim() === "" ||
-    value.startsWith("/") ||
-    value.includes("\\") ||
-    /^[a-z][a-z0-9+.-]*:/i.test(value) ||
-    value.split("/").some((segment) => segment === "" || segment === "." || segment === "..")
-  ) {
-    throw new Error(`Invalid ${fieldName}: ${value}`);
-  }
 }

@@ -1,7 +1,4 @@
-const themes = [
-  { id: "classic-literary", name: "Classic Literary" },
-  { id: "modern-clean", name: "Modern Clean" }
-];
+import { BUNDLED_THEME_CATALOG } from "@epub-creator/themes";
 
 export function ThemeGallery() {
   return (
@@ -12,7 +9,7 @@ export function ThemeGallery() {
         <button type="button">Export Theme</button>
       </div>
       <div className="theme-grid">
-        {themes.map((theme) => (
+        {BUNDLED_THEME_CATALOG.map((theme) => (
           <button className="theme-button" key={theme.id} type="button">
             {theme.name}
           </button>

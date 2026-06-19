@@ -20,4 +20,12 @@ describe("createPreviewDocument", () => {
     expect(html).toContain("<section>Body</section>");
     expect(html).toContain("body::before { content: '<'; }");
   });
+
+  it("prevents theme CSS from closing the style element", () => {
+    const project = createBookProject({ title: "Preview Book", author: "A. Writer", language: "en" });
+    const html = createPreviewDocument(project, "<section>Body</section>", "body{} </style><script>alert(1)</script>");
+
+    expect(html).not.toContain("</style><script>");
+    expect(html).toContain("<\\/style><script>alert(1)</script>");
+  });
 });

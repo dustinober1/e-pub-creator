@@ -16,12 +16,14 @@
   },
   "dependencies": {
     "@epub-creator/core": "workspace:*",
+    "@epub-creator/epub": "workspace:*",
     "@epub-creator/importers": "workspace:*",
-    "@epub-creator/validation": "workspace:*",
-    "@epub-creator/epub": "workspace:*"
+    "@epub-creator/themes": "workspace:*",
+    "@epub-creator/validation": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.20.6",
     "typescript": "^5.8.3"
-  }
+  },
+  "license": "Apache-2.0"
 }

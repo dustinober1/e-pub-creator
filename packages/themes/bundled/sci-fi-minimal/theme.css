@@ -1,0 +1,4 @@
+body { font-family: Arial, sans-serif; line-height: 1.55; color: #142326; }
+.chapter-title { color: #207c88; border-bottom: 1px solid #207c88; }
+.scene-break { margin: 2rem 0; }
+.message { font-family: ui-monospace, monospace; }

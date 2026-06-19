@@ -3,5 +3,5 @@ interface PreviewFrameProps {
 }
 
 export function PreviewFrame({ srcDoc }: PreviewFrameProps) {
-  return <iframe className="preview-frame" title="EPUB XHTML preview" srcDoc={srcDoc} />;
+  return <iframe className="preview-frame" sandbox="" title="EPUB XHTML preview" srcDoc={srcDoc} />;
 }

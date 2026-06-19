@@ -1,0 +1,24 @@
+{
+  "id": "romance-soft",
+  "version": "0.1.0",
+  "name": "Romance Soft",
+  "description": "Gentle romance styling with soft accents and open spacing.",
+  "license": "CC-BY-4.0",
+  "cssPath": "theme.css",
+  "preview": {
+    "thumbnailPath": "preview.svg",
+    "sampleText": "Chapter One"
+  },
+  "tokens": {
+    "bodyFont": "serif",
+    "headingFont": "serif",
+    "accentColor": "#b45f73",
+    "chapterNumberStyle": "word"
+  },
+  "fonts": [],
+  "components": {
+    "chapterTitle": ["ornamented", "minimal"],
+    "sceneBreak": ["ornament", "space"],
+    "quote": ["indented", "boxed-light"]
+  }
+}

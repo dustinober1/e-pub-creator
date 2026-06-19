@@ -1,0 +1,24 @@
+{
+  "id": "young-adult-bright",
+  "version": "0.1.0",
+  "name": "Young Adult Bright",
+  "description": "Bright YA styling with friendly spacing and lively accents.",
+  "license": "CC-BY-4.0",
+  "cssPath": "theme.css",
+  "preview": {
+    "thumbnailPath": "preview.svg",
+    "sampleText": "Chapter One"
+  },
+  "tokens": {
+    "bodyFont": "sans-serif",
+    "headingFont": "sans-serif",
+    "accentColor": "#d36b2d",
+    "chapterNumberStyle": "decimal"
+  },
+  "fonts": [],
+  "components": {
+    "chapterTitle": ["minimal", "ornamented"],
+    "sceneBreak": ["asterism", "space"],
+    "quote": ["boxed-light", "indented"]
+  }
+}

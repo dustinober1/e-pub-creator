@@ -1,0 +1,24 @@
+{
+  "id": "nonfiction-clear",
+  "version": "0.1.0",
+  "name": "Nonfiction Clear",
+  "description": "Clear nonfiction styling for repeated headings and scannable sections.",
+  "license": "CC-BY-4.0",
+  "cssPath": "theme.css",
+  "preview": {
+    "thumbnailPath": "preview.svg",
+    "sampleText": "Chapter One"
+  },
+  "tokens": {
+    "bodyFont": "sans-serif",
+    "headingFont": "sans-serif",
+    "accentColor": "#315f8c",
+    "chapterNumberStyle": "decimal"
+  },
+  "fonts": [],
+  "components": {
+    "chapterTitle": ["minimal", "rule"],
+    "sceneBreak": ["rule", "space"],
+    "quote": ["left-rule", "boxed-light"]
+  }
+}

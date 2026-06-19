@@ -6,7 +6,7 @@
   "license": "CC-BY-4.0",
   "cssPath": "theme.css",
   "preview": {
-    "thumbnailPath": "preview.png",
+    "thumbnailPath": "preview.svg",
     "sampleText": "Chapter One"
   },
   "tokens": {

@@ -1,3 +1,6 @@
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createServerApp } from "../src/server";
 
@@ -10,15 +13,52 @@ function importRequest(body: string): Request {
 }
 
 describe("project import route", () => {
-  it("accepts import intent with trimmed source and project", async () => {
+  it("imports markdown into a persisted project folder", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "epub-server-import-"));
+
+    try {
+      const source = join(directory, "book.md");
+      const project = join(directory, "Draft.epubproj");
+      await writeFile(source, "# Imported Book\n\n## Chapter One\n\nImported paragraph.\n");
+
+      const app = createServerApp();
+      const response = await app.handle(importRequest(JSON.stringify({ source: ` ${source} `, project: ` ${project} ` })));
+      const body = (await response.json()) as {
+        project: string;
+        sectionCount: number;
+        source: string;
+        status: string;
+        title: string;
+        warningCount: number;
+      };
+      const projectContent = JSON.parse(await readFile(join(project, "content", "book.json"), "utf8")) as {
+        metadata: { title: string };
+        sections: unknown[];
+      };
+
+      expect(response.status).toBe(200);
+      expect(body).toEqual({
+        project,
+        sectionCount: 1,
+        source,
+        status: "imported",
+        title: "Imported Book",
+        warningCount: 1
+      });
+      expect(projectContent.metadata.title).toBe("Imported Book");
+      expect(projectContent.sections).toHaveLength(1);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects import requests when the source file cannot be read", async () => {
     const app = createServerApp();
     const response = await app.handle(importRequest(JSON.stringify({ source: "  book.docx ", project: " Draft " })));
 
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
-      source: "book.docx",
-      project: "Draft",
-      status: "accepted"
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining("Import failed:")
     });
   });
 
