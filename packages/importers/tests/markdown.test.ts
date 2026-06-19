@@ -23,4 +23,15 @@ describe("importMarkdown", () => {
       message: "Review detected section roles and block classifications before export."
     });
   });
+
+  it("classifies exact also by headings as back matter", () => {
+    const result = importMarkdown("# Book\n\n## Also By\n\nAnother Book", {
+      sourcePath: "fixtures/markdown/also-by.md",
+      author: "Sample Author",
+      language: "en"
+    });
+
+    expect(result.project.sections).toHaveLength(1);
+    expect(result.project.sections[0]?.role).toBe("back");
+  });
 });

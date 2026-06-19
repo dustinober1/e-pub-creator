@@ -82,17 +82,14 @@ function findTitle(lines: string[]): string {
 
 function inferSectionRole(title: string): SectionRole {
   const normalized = normalizeHeading(title);
+  const frontMatterLabels = ["copyright", "dedication", "title page"];
+  const backMatterLabels = ["about the author", "also by", "newsletter", "acknowledgments"];
 
-  if (["copyright", "dedication", "title page"].includes(normalized)) {
+  if (frontMatterLabels.includes(normalized)) {
     return "front";
   }
 
-  if (
-    normalized === "about the author" ||
-    normalized === "newsletter" ||
-    normalized === "acknowledgments" ||
-    normalized.startsWith("also by ")
-  ) {
+  if (backMatterLabels.includes(normalized) || normalized.startsWith("also by ")) {
     return "back";
   }
 
