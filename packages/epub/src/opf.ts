@@ -22,6 +22,7 @@ export function renderOpf(project: BookProject): string {
     metadata.rights ? `    <dc:rights>${escapeXml(metadata.rights)}</dc:rights>` : "",
     metadata.description ? `    <dc:description>${escapeXml(metadata.description)}</dc:description>` : "",
     metadata.publicationDate ? `    <dc:date>${escapeXml(metadata.publicationDate)}</dc:date>` : "",
+    `    <meta property="dcterms:modified">${escapeXml(formatModifiedDate(project.updatedAt))}</meta>`,
     "  </metadata>",
     "  <manifest>",
     '    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav" />',
@@ -43,6 +44,10 @@ function sectionManifestId(index: number): string {
 
 function sectionHref(index: number): string {
   return `sections/section-${index + 1}.xhtml`;
+}
+
+function formatModifiedDate(value: string): string {
+  return new Date(value).toISOString().replace(/\.\d{3}Z$/, "Z");
 }
 
 function escapeXml(value: string): string {

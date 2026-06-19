@@ -14,9 +14,11 @@ describe("renderOpf", () => {
     );
 
     const opf = renderOpf(project);
+    const modified = new Date(project.updatedAt).toISOString().replace(/\.\d{3}Z$/, "Z");
 
     expect(opf).toContain('version="3.0"');
     expect(opf).toContain("<dc:title>Export Book</dc:title>");
+    expect(opf).toContain(`property="dcterms:modified">${modified}</meta>`);
     expect(opf).toContain('properties="nav"');
   });
 });
