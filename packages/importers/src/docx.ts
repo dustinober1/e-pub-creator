@@ -11,10 +11,20 @@ interface MammothMessage {
   message: string;
 }
 
+type MammothInput = { path: string } | { buffer: Buffer };
+
 export async function importDocx(path: string, options: DocxImportOptions): Promise<HtmlImportResult> {
+  return importDocxSource({ path }, options);
+}
+
+export async function importDocxBuffer(buffer: Buffer, options: DocxImportOptions): Promise<HtmlImportResult> {
+  return importDocxSource({ buffer }, options);
+}
+
+async function importDocxSource(input: MammothInput, options: DocxImportOptions): Promise<HtmlImportResult> {
   const imageWarnings: ImportWarning[] = [];
   const result = await mammoth.convertToHtml(
-    { path },
+    input,
     {
       styleMap: options.styleMap ?? [
         "p[style-name='Chapter Title'] => h2:fresh",

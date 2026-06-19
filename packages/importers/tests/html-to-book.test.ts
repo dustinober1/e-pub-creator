@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { importDocx } from "../src/docx";
+import { importDocx, importDocxBuffer } from "../src/docx";
 import { importHtmlFragment } from "../src/html-to-book";
 
 const convertToHtmlMock = vi.hoisted(() => vi.fn());
@@ -185,6 +185,50 @@ describe("importHtmlFragment", () => {
 });
 
 describe("importDocx", () => {
+  it("calls mammoth with a path input object for file imports", async () => {
+    convertToHtmlMock.mockResolvedValue({
+      value: "<h1>Chapter One</h1><p>The first paragraph begins.</p>",
+      messages: []
+    });
+
+    await importDocx("sample.docx", {
+      sourcePath: "sample.docx",
+      author: "Sample Author",
+      language: "en"
+    });
+
+    expect(convertToHtmlMock).toHaveBeenCalledWith(
+      { path: "sample.docx" },
+      expect.objectContaining({
+        includeDefaultStyleMap: true,
+        ignoreEmptyParagraphs: true
+      })
+    );
+  });
+
+  it("calls mammoth with a buffer input object for buffer imports", async () => {
+    const buffer = Buffer.from("docx bytes");
+
+    convertToHtmlMock.mockResolvedValue({
+      value: "<h1>Chapter One</h1><p>The first paragraph begins.</p>",
+      messages: []
+    });
+
+    await importDocxBuffer(buffer, {
+      sourcePath: "sample.docx",
+      author: "Sample Author",
+      language: "en"
+    });
+
+    expect(convertToHtmlMock).toHaveBeenCalledWith(
+      { buffer },
+      expect.objectContaining({
+        includeDefaultStyleMap: true,
+        ignoreEmptyParagraphs: true
+      })
+    );
+  });
+
   it("preserves mammoth messages as import warnings", async () => {
     convertToHtmlMock.mockResolvedValue({
       value: "<h1>Chapter One</h1><p>The first paragraph begins.</p>",
