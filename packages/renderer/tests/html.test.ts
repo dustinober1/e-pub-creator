@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createAsset, createBookProject, createSection, createTextBlock } from "@epub-creator/core";
 import { mergeCss } from "../src/css";
-import { renderSectionXhtml } from "../src/html";
+import { renderSectionFragment, renderSectionXhtml } from "../src/html";
 import { renderNavXhtml } from "../src/nav";
 
 describe("renderSectionXhtml", () => {
@@ -65,6 +65,27 @@ describe("renderSectionXhtml", () => {
     expect(xhtml).toContain('<img src="../assets/images/plate.png" alt="Plate &amp; caption" />');
     expect(xhtml).toContain('<aside id="fn-1" epub:type="footnote" class="footnote">Footnote text.</aside>');
     expect(xhtml).toContain('<aside id="en-1" epub:type="endnote" class="endnote">Endnote text.</aside>');
+  });
+});
+
+describe("renderSectionFragment", () => {
+  it("renders a section fragment without document wrapper markup", () => {
+    const project = createBookProject({ title: "Render Book", author: "A. Writer", language: "en" });
+    const section = createSection({
+      title: "Chapter One",
+      role: "body",
+      blocks: [createTextBlock("paragraph", "Opening paragraph.")]
+    });
+
+    const fragment = renderSectionFragment(project, section);
+
+    expect(fragment).toContain('<section epub:type="chapter"');
+    expect(fragment).toContain('<header class="chapter-title"><h1>Chapter One</h1></header>');
+    expect(fragment).toContain('<p class="paragraph">Opening paragraph.</p>');
+    expect(fragment).not.toMatch(/<!doctype html>/i);
+    expect(fragment).not.toMatch(/<html\b/i);
+    expect(fragment).not.toMatch(/<head\b/i);
+    expect(fragment).not.toMatch(/<body\b/i);
   });
 });
 

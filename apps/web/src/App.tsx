@@ -1,6 +1,6 @@
-import { createBookProject, createSection, createTextBlock } from "@epub-creator/core/src/book";
-import { renderSectionXhtml } from "@epub-creator/renderer/src/html";
-import { createPreviewDocument } from "@epub-creator/renderer/src/preview";
+import { createBookProject, createSection, createTextBlock } from "@epub-creator/core/book";
+import { renderSectionFragment } from "@epub-creator/renderer/html";
+import { createPreviewDocument } from "@epub-creator/renderer/preview";
 import { BookOutline } from "./components/BookOutline";
 import { ImportReview } from "./components/ImportReview";
 import { MetadataPanel } from "./components/MetadataPanel";
@@ -33,7 +33,7 @@ const sampleProject = (() => {
 
 export function App() {
   const previewSection = sampleProject.sections[0];
-  const renderedSections = previewSection ? renderSectionXhtml(sampleProject, previewSection) : "";
+  const renderedSections = previewSection ? renderSectionFragment(sampleProject, previewSection) : "";
   const previewHtml = createPreviewDocument(
     sampleProject,
     renderedSections,

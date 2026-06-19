@@ -17,5 +17,12 @@ describe("App", () => {
       "srcdoc",
       expect.stringContaining("body { font-family: Georgia, serif; line-height: 1.55; padding: 2rem; }")
     );
+
+    const srcDoc = preview.getAttribute("srcdoc") ?? "";
+    expect(srcDoc).toContain("Chapter One");
+    expect(srcDoc).toContain("The first paragraph tests ordinary prose flow and margins in the preview pane.");
+    expect(srcDoc.match(/<!doctype html>/gi)).toHaveLength(1);
+    expect(srcDoc.match(/<html\b/gi)).toHaveLength(1);
+    expect(srcDoc).not.toContain("<?xml");
   });
 });

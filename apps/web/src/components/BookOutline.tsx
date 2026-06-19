@@ -1,4 +1,4 @@
-import type { BookSection } from "@epub-creator/core/src/book";
+import type { BookSection } from "@epub-creator/core/book";
 
 interface BookOutlineProps {
   sections: BookSection[];

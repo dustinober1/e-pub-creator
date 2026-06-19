@@ -1,4 +1,4 @@
-import type { BookMetadata } from "@epub-creator/core/src/book";
+import type { BookMetadata } from "@epub-creator/core/book";
 
 interface MetadataPanelProps {
   metadata: Pick<BookMetadata, "title" | "author" | "language">;

@@ -9,8 +9,10 @@ const SECTION_EPUB_TYPES: Record<BookSection["role"], string> = {
 export function renderSectionXhtml(project: BookProject, section: BookSection): string {
   const lang = escapeAttribute(project.metadata.language);
   const title = escapeHtml(section.title);
-  const sectionType = SECTION_EPUB_TYPES[section.role];
-  const renderedBlocks = section.blocks.map((block) => renderBlock(project, block)).join("\n      ");
+  const sectionFragment = renderSectionFragment(project, section)
+    .split("\n")
+    .map((line) => `    ${line}`)
+    .join("\n");
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -22,12 +24,24 @@ export function renderSectionXhtml(project: BookProject, section: BookSection): 
     '    <link rel="stylesheet" type="text/css" href="../styles/book.css" />',
     "  </head>",
     "  <body>",
-    `    <section epub:type="${sectionType}" id="${escapeAttribute(section.id)}">`,
-    `      <header class="chapter-title"><h1>${title}</h1></header>`,
-    renderedBlocks ? `      ${renderedBlocks}` : "",
-    "    </section>",
+    sectionFragment,
     "  </body>",
     "</html>"
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
+}
+
+export function renderSectionFragment(project: BookProject, section: BookSection): string {
+  const title = escapeHtml(section.title);
+  const sectionType = SECTION_EPUB_TYPES[section.role];
+  const renderedBlocks = section.blocks.map((block) => renderBlock(project, block)).join("\n  ");
+
+  return [
+    `<section epub:type="${sectionType}" id="${escapeAttribute(section.id)}">`,
+    `  <header class="chapter-title"><h1>${title}</h1></header>`,
+    renderedBlocks ? `  ${renderedBlocks}` : "",
+    "</section>"
   ]
     .filter((line) => line !== "")
     .join("\n");
