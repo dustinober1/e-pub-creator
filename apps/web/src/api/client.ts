@@ -20,7 +20,7 @@ export async function importProject(source: string, project: string): Promise<{ 
   });
 
   if (!response.ok) {
-    const body = (await response.json()) as { error?: string };
+    const body = (await response.json().catch(() => ({}))) as { error?: string };
     throw new Error(body.error ?? `Import failed: ${response.status}`);
   }
 

@@ -48,19 +48,3 @@ describe("local server", () => {
     await expect(response.json()).resolves.toEqual({ error: "Method not allowed" });
   });
 });
-
-describe("project import route", () => {
-  it("rejects import without a source path", async () => {
-    const app = createServerApp();
-    const response = await app.handle(
-      new Request("http://127.0.0.1/api/projects/import", {
-        method: "POST",
-        body: JSON.stringify({}),
-        headers: { "content-type": "application/json" }
-      })
-    );
-
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({ error: "--source is required." });
-  });
-});

@@ -29,7 +29,7 @@ export function createServerApp(): ServerApp {
 
       if (pathname === "/api/projects/import") {
         if (request.method !== "POST") {
-          return methodNotAllowed();
+          return methodNotAllowed("POST");
         }
 
         return importProjectRoute(request);
@@ -52,11 +52,11 @@ function isReadOnlyMethod(method: string): boolean {
   return method === "GET" || method === "HEAD";
 }
 
-function methodNotAllowed(): Response {
+function methodNotAllowed(allow = "GET, HEAD"): Response {
   return Response.json(
     { error: "Method not allowed" },
     {
-      headers: { allow: "GET, HEAD" },
+      headers: { allow },
       status: 405
     }
   );
