@@ -12,6 +12,7 @@
   "dependencies": {
     "@epub-creator/core": "workspace:*",
     "@epub-creator/renderer": "workspace:*",
+    "@epub-creator/themes": "workspace:*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
