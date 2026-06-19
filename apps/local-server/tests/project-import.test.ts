@@ -1,7 +1,8 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createBookProject, createSection, createTextBlock } from "@epub-creator/core";
 
 const importDocxBufferMock = vi.hoisted(() => vi.fn());
 
@@ -35,6 +36,22 @@ function importUploadRequest(form: FormData): Request {
   });
 }
 
+function saveRequest(body: string): Request {
+  return new Request("http://127.0.0.1/api/projects/save", {
+    method: "PUT",
+    body,
+    headers: { "content-type": "application/json" }
+  });
+}
+
+function exportRequest(body: string): Request {
+  return new Request("http://127.0.0.1/api/projects/export", {
+    method: "POST",
+    body,
+    headers: { "content-type": "application/json" }
+  });
+}
+
 function createImportedDocxResult(title = "Uploaded Book") {
   return {
     project: {
@@ -55,6 +72,23 @@ function createImportedDocxResult(title = "Uploaded Book") {
       warnings: [{ code: "UNCLASSIFIED_BLOCK", message: "warning" }],
       stats: { durationMs: 0 }
     }
+  };
+}
+
+function createBookProjectFixture(title = "Saved Book") {
+  return {
+    ...createBookProject({
+      title,
+      author: "A. Writer",
+      language: "en"
+    }),
+    sections: [
+      createSection({
+        title: "Chapter One",
+        role: "body",
+        blocks: [createTextBlock("paragraph", "Saved paragraph.")]
+      })
+    ]
   };
 }
 
@@ -342,5 +376,103 @@ describe("project import upload route", () => {
     expect(response.status).toBe(405);
     expect(response.headers.get("allow")).toBe("POST");
     await expect(response.json()).resolves.toEqual({ error: "Method not allowed" });
+  });
+});
+
+describe("project save and export routes", () => {
+  it("saves a provided book project into the requested project folder", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "epub-server-save-"));
+
+    try {
+      const projectPath = join(directory, "Saved.epubproj");
+      const bookProject = createBookProjectFixture();
+
+      const app = createServerApp();
+      const response = await app.handle(
+        saveRequest(JSON.stringify({ project: ` ${projectPath} `, bookProject }))
+      );
+      const body = (await response.json()) as { project: string; status: string };
+      const savedProject = JSON.parse(
+        await readFile(join(projectPath, "content", "book.json"), "utf8")
+      ) as { metadata: { title: string } };
+
+      expect(response.status).toBe(200);
+      expect(body).toEqual({ project: projectPath, status: "saved" });
+      expect(savedProject.metadata.title).toBe("Saved Book");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("exports an epub after persisting the latest project state", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "epub-server-export-"));
+
+    try {
+      const projectPath = join(directory, "Exported.epubproj");
+      const outputPath = join(directory, "dist", "Exported.epub");
+      const bookProject = createBookProjectFixture("Exported Book");
+
+      const app = createServerApp();
+      const response = await app.handle(
+        exportRequest(
+          JSON.stringify({
+            project: projectPath,
+            output: outputPath,
+            profile: "portable-epub3",
+            bookProject
+          })
+        )
+      );
+      const body = (await response.json()) as {
+        issueCount: number;
+        outputPath: string;
+        project: string;
+        status: string;
+      };
+      const savedProject = JSON.parse(
+        await readFile(join(projectPath, "content", "book.json"), "utf8")
+      ) as { metadata: { title: string } };
+      const archive = await stat(outputPath);
+
+      expect(response.status).toBe(200);
+      expect(body).toMatchObject({
+        issueCount: 0,
+        outputPath,
+        project: projectPath,
+        status: "exported"
+      });
+      expect(savedProject.metadata.title).toBe("Exported Book");
+      expect(archive.isFile()).toBe(true);
+      expect(archive.size).toBeGreaterThan(0);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects invalid save and export payloads", async () => {
+    const app = createServerApp();
+    const invalidSave = await app.handle(
+      saveRequest(JSON.stringify({ project: " \t ", bookProject: [] }))
+    );
+    const invalidExport = await app.handle(
+      exportRequest(
+        JSON.stringify({
+          project: "/tmp/Draft.epubproj",
+          output: "",
+          profile: "unsupported",
+          bookProject: "nope"
+        })
+      )
+    );
+
+    expect(invalidSave.status).toBe(400);
+    await expect(invalidSave.json()).resolves.toEqual({
+      error: "--project is required."
+    });
+
+    expect(invalidExport.status).toBe(400);
+    await expect(invalidExport.json()).resolves.toEqual({
+      error: "--output is required."
+    });
   });
 });

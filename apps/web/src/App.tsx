@@ -19,6 +19,7 @@ import {
   type EditableMetadata,
 } from "./components/MetadataPanel";
 import { PreviewFrame } from "./components/PreviewFrame";
+import { ProjectActions } from "./components/ProjectActions";
 import { SectionEditor } from "./components/SectionEditor";
 import { ThemeEditor } from "./components/ThemeEditor";
 import { ThemeGallery } from "./components/ThemeGallery";
@@ -67,6 +68,7 @@ export function App() {
     string | undefined
   >(sampleProject.sections[0]?.id);
   const [importedProjectPath, setImportedProjectPath] = useState<string>();
+  const [projectFolderPath, setProjectFolderPath] = useState("");
   const [importReport, setImportReport] = useState<UploadImportReport>();
   const selectedSection = activeProject.sections.find(
     (section) => section.id === selectedSectionId,
@@ -111,6 +113,7 @@ export function App() {
     if (result.kind === "docx") {
       setActiveProject(result.response.bookProject);
       setImportedProjectPath(result.response.project);
+      setProjectFolderPath(result.response.project ?? "");
       setSelectedSectionId(result.response.bookProject.sections[0]?.id);
       setImportReport(result.response.report);
       return;
@@ -121,6 +124,7 @@ export function App() {
     );
     setActiveProject(placeholderProject);
     setImportedProjectPath(result.response.project);
+    setProjectFolderPath(result.response.project);
     setSelectedSectionId(undefined);
     setImportReport(undefined);
   }
@@ -150,6 +154,11 @@ export function App() {
         </section>
         <aside className="stack" aria-label="Project controls">
           <ImportActions onImported={handleImported} />
+          <ProjectActions
+            bookProject={activeProject}
+            projectPath={projectFolderPath}
+            onProjectPathChange={setProjectFolderPath}
+          />
           <MetadataPanel
             metadata={activeProject.metadata}
             onChange={handleMetadataChange}

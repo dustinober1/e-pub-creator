@@ -1,5 +1,11 @@
 import { healthRoute } from "./routes/health";
-import { importProjectRoute, importProjectUploadRoute, projectsRoute } from "./routes/projects";
+import {
+  exportProjectRoute,
+  importProjectRoute,
+  importProjectUploadRoute,
+  projectsRoute,
+  saveProjectRoute
+} from "./routes/projects";
 import { themesRoute } from "./routes/themes";
 
 export interface ServerApp {
@@ -41,6 +47,22 @@ export function createServerApp(): ServerApp {
         }
 
         return importProjectUploadRoute(request);
+      }
+
+      if (pathname === "/api/projects/save") {
+        if (request.method !== "PUT") {
+          return methodNotAllowed("PUT");
+        }
+
+        return saveProjectRoute(request);
+      }
+
+      if (pathname === "/api/projects/export") {
+        if (request.method !== "POST") {
+          return methodNotAllowed("POST");
+        }
+
+        return exportProjectRoute(request);
       }
 
       if (pathname === "/api/projects") {

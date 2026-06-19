@@ -1,9 +1,12 @@
-import { copyProjectAssetSources, writeProjectFolder } from "@epub-creator/core";
+import { copyProjectAssetSources, type BookProject, writeProjectFolder } from "@epub-creator/core";
 import { importDocx, importDocxBuffer, importMarkdown } from "@epub-creator/importers";
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
+import { createEpubPackage, writeEpubFile } from "../../../../packages/epub/src/index";
 
 const DOCX_UPLOAD_SIZE_LIMIT = 25 * 1024 * 1024;
+const EXPORT_CSS = "body { line-height: 1.55; }";
+type ExportProfile = "portable-epub3" | "kdp-safe" | "apple-books-enhanced";
 
 export function projectsRoute(): Response {
   return Response.json({ openProject: null, recentProjects: [] });
@@ -122,6 +125,99 @@ export async function importProjectUploadRoute(request: Request): Promise<Respon
   }
 }
 
+export async function saveProjectRoute(request: Request): Promise<Response> {
+  const body = await readJsonObject(request);
+
+  if (body instanceof Response) {
+    return body;
+  }
+
+  if (typeof body.project !== "string") {
+    return Response.json({ error: "--project must be a string." }, { status: 400 });
+  }
+
+  const project = body.project.trim();
+
+  if (!project) {
+    return Response.json({ error: "--project is required." }, { status: 400 });
+  }
+
+  if (!isRecord(body.bookProject)) {
+    return Response.json({ error: "--bookProject must be an object." }, { status: 400 });
+  }
+
+  const bookProject = body.bookProject as unknown as BookProject;
+
+  try {
+    await writeProjectFolder(project, bookProject);
+    await copyProjectAssetSources(project, bookProject);
+
+    return Response.json({ status: "saved", project });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return Response.json({ error: `Save failed: ${message}` }, { status: 400 });
+  }
+}
+
+export async function exportProjectRoute(request: Request): Promise<Response> {
+  const body = await readJsonObject(request);
+
+  if (body instanceof Response) {
+    return body;
+  }
+
+  if (typeof body.project !== "string") {
+    return Response.json({ error: "--project must be a string." }, { status: 400 });
+  }
+
+  if (typeof body.output !== "string") {
+    return Response.json({ error: "--output must be a string." }, { status: 400 });
+  }
+
+  const project = body.project.trim();
+  const output = body.output.trim();
+
+  if (!project) {
+    return Response.json({ error: "--project is required." }, { status: 400 });
+  }
+
+  if (!output) {
+    return Response.json({ error: "--output is required." }, { status: 400 });
+  }
+
+  if (!isExportProfile(body.profile)) {
+    return Response.json({ error: "--profile must be a supported export profile." }, { status: 400 });
+  }
+
+  if (!isRecord(body.bookProject)) {
+    return Response.json({ error: "--bookProject must be an object." }, { status: 400 });
+  }
+
+  const bookProject = body.bookProject as unknown as BookProject;
+
+  try {
+    await writeProjectFolder(project, bookProject);
+    await copyProjectAssetSources(project, bookProject);
+
+    const packageResult = createEpubPackage(bookProject, EXPORT_CSS, body.profile);
+    await writeEpubFile({
+      projectDirectory: project,
+      outputPath: output,
+      packageResult
+    });
+
+    return Response.json({
+      status: "exported",
+      project,
+      outputPath: output,
+      issueCount: packageResult.report.issues.length
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return Response.json({ error: `Export failed: ${message}` }, { status: 400 });
+  }
+}
+
 async function importSource(source: string) {
   const extension = extname(source).toLowerCase();
 
@@ -147,6 +243,26 @@ async function importSource(source: string) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+async function readJsonObject(request: Request): Promise<Record<string, unknown> | Response> {
+  let body: unknown;
+
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  if (!isRecord(body)) {
+    return Response.json({ error: "Request body must be an object." }, { status: 400 });
+  }
+
+  return body;
+}
+
+function isExportProfile(value: unknown): value is ExportProfile {
+  return value === "portable-epub3" || value === "kdp-safe" || value === "apple-books-enhanced";
 }
 
 function readOptionalFormString(form: FormData, key: string): string | undefined {

@@ -7,8 +7,13 @@ import {
 } from "@epub-creator/core/book";
 import { App } from "../src/App";
 
+const saveProjectMock = vi.hoisted(() => vi.fn());
+const exportProjectMock = vi.hoisted(() => vi.fn());
+
 afterEach(() => {
   cleanup();
+  saveProjectMock.mockReset();
+  exportProjectMock.mockReset();
 });
 
 vi.mock("../src/components/ImportActions", () => ({
@@ -91,6 +96,16 @@ vi.mock("../src/components/ImportActions", () => ({
     </section>
   ),
 }));
+
+vi.mock("../src/api/client", async () => {
+  const actual = await vi.importActual<typeof import("../src/api/client")>("../src/api/client");
+
+  return {
+    ...actual,
+    saveProject: saveProjectMock,
+    exportProject: exportProjectMock
+  };
+});
 
 describe("App", () => {
   it("renders project workspace surfaces", () => {
@@ -302,5 +317,68 @@ describe("App", () => {
     expect(srcDoc).toContain("Afterword");
     expect(srcDoc).toContain("Revised closing copy.");
     expect(srcDoc).not.toContain("Closing notes.");
+  });
+
+  it("uses the current project state for save and export actions", async () => {
+    saveProjectMock.mockResolvedValue({
+      status: "saved",
+      project: "/tmp/Imported.epubproj"
+    });
+    exportProjectMock.mockResolvedValue({
+      status: "exported",
+      outputPath: "/tmp/output/Imported.epub",
+      issueCount: 0
+    });
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Trigger DOCX Import" }));
+    expect(
+      await screen.findByRole("heading", {
+        name: "Imported Through App State"
+      })
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "Saved From App" }
+    });
+
+    expect(screen.getByLabelText("Project folder")).toHaveValue("/tmp/Imported.epubproj");
+
+    fireEvent.click(screen.getByRole("button", { name: "Save Project" }));
+
+    expect(
+      await screen.findByText("Saved /tmp/Imported.epubproj.")
+    ).toBeInTheDocument();
+    expect(saveProjectMock).toHaveBeenCalledWith(
+      "/tmp/Imported.epubproj",
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          title: "Saved From App"
+        })
+      })
+    );
+
+    fireEvent.change(screen.getByLabelText("EPUB output path"), {
+      target: { value: "/tmp/output/Imported.epub" }
+    });
+    fireEvent.change(screen.getByLabelText("Export profile"), {
+      target: { value: "kdp-safe" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Export EPUB" }));
+
+    expect(
+      await screen.findByText("Exported /tmp/output/Imported.epub with 0 issues.")
+    ).toBeInTheDocument();
+    expect(exportProjectMock).toHaveBeenCalledWith({
+      project: "/tmp/Imported.epubproj",
+      output: "/tmp/output/Imported.epub",
+      profile: "kdp-safe",
+      bookProject: expect.objectContaining({
+        metadata: expect.objectContaining({
+          title: "Saved From App"
+        })
+      })
+    });
   });
 });

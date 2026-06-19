@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { importProject, uploadDocxProject } from "../src/api/client";
+import { createBookProject } from "@epub-creator/core/book";
+import { exportProject, importProject, saveProject, uploadDocxProject } from "../src/api/client";
 
 const originalFetch = globalThis.fetch;
 
@@ -42,6 +43,14 @@ function createUploadResponse(overrides: Record<string, unknown> = {}) {
     },
     ...overrides
   };
+}
+
+function createBookProjectFixture(title = "Client Test Book") {
+  return createBookProject({
+    title,
+    author: "Author",
+    language: "en"
+  });
 }
 
 describe("importProject", () => {
@@ -133,5 +142,76 @@ describe("uploadDocxProject", () => {
     const file = new File(["docx-bytes"], "book.docx");
 
     await expect(uploadDocxProject({ file })).rejects.toThrow("Upload failed: 502");
+  });
+});
+
+describe("saveProject", () => {
+  it("submits the project folder and book project payload", async () => {
+    globalThis.fetch = vi.fn(async () => Response.json({ status: "saved", project: "/tmp/Draft.epubproj" }));
+
+    const bookProject = createBookProjectFixture();
+    const result = await saveProject("/tmp/Draft.epubproj", bookProject);
+
+    expect(result).toEqual({ status: "saved", project: "/tmp/Draft.epubproj" });
+    expect(globalThis.fetch).toHaveBeenCalledWith("/api/projects/save", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ project: "/tmp/Draft.epubproj", bookProject })
+    });
+  });
+
+  it("surfaces JSON save errors", async () => {
+    globalThis.fetch = vi.fn(async () => Response.json({ error: "Cannot save project." }, { status: 400 }));
+
+    await expect(saveProject("/tmp/Draft.epubproj", createBookProjectFixture())).rejects.toThrow("Cannot save project.");
+  });
+});
+
+describe("exportProject", () => {
+  it("submits export inputs and returns the export summary", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      Response.json({
+        status: "exported",
+        outputPath: "/tmp/Book.epub",
+        issueCount: 2
+      })
+    );
+
+    const bookProject = createBookProjectFixture("Export Client Book");
+    const result = await exportProject({
+      project: "/tmp/Draft.epubproj",
+      output: "/tmp/Book.epub",
+      profile: "kdp-safe",
+      bookProject
+    });
+
+    expect(result).toEqual({
+      status: "exported",
+      outputPath: "/tmp/Book.epub",
+      issueCount: 2
+    });
+    expect(globalThis.fetch).toHaveBeenCalledWith("/api/projects/export", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        project: "/tmp/Draft.epubproj",
+        output: "/tmp/Book.epub",
+        profile: "kdp-safe",
+        bookProject
+      })
+    });
+  });
+
+  it("falls back to the HTTP status for non-JSON export failures", async () => {
+    globalThis.fetch = vi.fn(async () => new Response("nope", { status: 502 }));
+
+    await expect(
+      exportProject({
+        project: "/tmp/Draft.epubproj",
+        output: "/tmp/Book.epub",
+        profile: "portable-epub3",
+        bookProject: createBookProjectFixture()
+      })
+    ).rejects.toThrow("Export failed: 502");
   });
 });

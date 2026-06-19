@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@epub-creator/core": "workspace:*",
+    "@epub-creator/epub": "workspace:*",
     "@epub-creator/importers": "workspace:*",
     "@epub-creator/themes": "workspace:*",
     "tsx": "^4.20.3"

@@ -52,6 +52,24 @@ export interface UploadDocxProjectInput {
   language?: string;
 }
 
+export interface SaveProjectResponse {
+  status: string;
+  project: string;
+}
+
+export interface ExportProjectInput {
+  project: string;
+  output: string;
+  profile: "portable-epub3" | "kdp-safe" | "apple-books-enhanced";
+  bookProject: BookProject;
+}
+
+export interface ExportProjectResponse {
+  status: string;
+  outputPath: string;
+  issueCount: number;
+}
+
 export async function importProject(source: string, project: string): Promise<ImportProjectResponse> {
   const response = await fetch("/api/projects/import", {
     method: "POST",
@@ -94,4 +112,34 @@ export async function uploadDocxProject(input: UploadDocxProjectInput): Promise<
   }
 
   return response.json() as Promise<UploadDocxProjectResponse>;
+}
+
+export async function saveProject(project: string, bookProject: BookProject): Promise<SaveProjectResponse> {
+  const response = await fetch("/api/projects/save", {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ project, bookProject })
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error ?? `Save failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<SaveProjectResponse>;
+}
+
+export async function exportProject(input: ExportProjectInput): Promise<ExportProjectResponse> {
+  const response = await fetch("/api/projects/export", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error ?? `Export failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<ExportProjectResponse>;
 }
