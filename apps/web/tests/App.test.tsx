@@ -1,6 +1,60 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createBookProject, createSection, createTextBlock } from "@epub-creator/core/book";
 import { App } from "../src/App";
+
+afterEach(() => {
+  cleanup();
+});
+
+vi.mock("../src/components/ImportActions", () => ({
+  ImportActions: ({ onImported }: { onImported?: (result: unknown) => void }) => (
+    <section aria-label="Import actions">
+      <button
+        type="button"
+        onClick={() =>
+          onImported?.({
+            kind: "docx",
+            response: {
+              project: "/tmp/Imported.epubproj",
+              source: "Imported.docx",
+              status: "imported",
+              title: "Imported Through App State",
+              sectionCount: 2,
+              warningCount: 1,
+              bookProject: {
+                ...createBookProject({
+                  title: "Imported Through App State",
+                  author: "Imported Author",
+                  language: "fr"
+                }),
+                sections: [
+                  createSection({
+                    title: "Imported Opening",
+                    role: "body",
+                    blocks: [createTextBlock("paragraph", "Fresh imported preview content.")]
+                  }),
+                  createSection({
+                    title: "Imported Finale",
+                    role: "backmatter",
+                    blocks: [createTextBlock("paragraph", "Closing notes.")]
+                  })
+                ]
+              },
+              report: {
+                sourcePath: "Imported.docx",
+                warnings: [{ code: "missing-alt", message: "One image is missing alt text." }],
+                importedAssets: [{ sourcePath: "cover.png", altText: "Cover art" }]
+              }
+            }
+          })
+        }
+      >
+        Trigger DOCX Import
+      </button>
+    </section>
+  )
+}));
 
 describe("App", () => {
   it("renders project workspace surfaces", () => {
@@ -26,5 +80,22 @@ describe("App", () => {
     expect(srcDoc.match(/<!doctype html>/gi)).toHaveLength(1);
     expect(srcDoc.match(/<html\b/gi)).toHaveLength(1);
     expect(srcDoc).not.toContain("<?xml");
+  });
+
+  it("replaces the sample shell with imported project state", async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Trigger DOCX Import" }));
+
+    expect(await screen.findByRole("heading", { name: "Imported Through App State" })).toBeInTheDocument();
+    expect(screen.getByText("Imported Author / fr")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Imported Opening" })).toHaveAttribute("aria-current", "true");
+    expect(screen.getByText("2 sections ready from Imported.docx.")).toBeInTheDocument();
+    expect(screen.getByText("Project folder: /tmp/Imported.epubproj")).toBeInTheDocument();
+    expect(screen.getByText("One image is missing alt text.")).toBeInTheDocument();
+
+    const preview = screen.getByTitle("EPUB XHTML preview");
+    const srcDoc = preview.getAttribute("srcdoc") ?? "";
+    expect(srcDoc).toContain("Fresh imported preview content.");
   });
 });
