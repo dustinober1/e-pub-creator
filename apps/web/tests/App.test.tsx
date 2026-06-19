@@ -207,11 +207,17 @@ describe("App", () => {
       ),
     ).toBeInTheDocument();
     expect(
+      screen.getByText(
+        "Select a section to edit its title, role, and text blocks.",
+      ),
+    ).toBeInTheDocument();
+    expect(
       screen.queryByText("One image is missing alt text."),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Imported Opening" }),
     ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Section title")).not.toBeInTheDocument();
 
     const preview = screen.getByTitle("EPUB XHTML preview");
     const srcDoc = preview.getAttribute("srcdoc") ?? "";

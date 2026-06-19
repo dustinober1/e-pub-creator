@@ -5,29 +5,15 @@ import type {
 } from "@epub-creator/core/book";
 
 interface SectionEditorProps {
-  section?: BookSection;
-  onChange?: (section: BookSection) => void;
+  section: BookSection;
+  onChange: (section: BookSection) => void;
 }
 
 const SECTION_ROLES: SectionRole[] = ["front", "body", "back"];
 
 export function SectionEditor({ section, onChange }: SectionEditorProps) {
-  if (!section) {
-    return (
-      <section
-        className="panel section-editor"
-        aria-labelledby="section-editor-heading"
-      >
-        <h2 id="section-editor-heading">Section Editor</h2>
-        <p className="panel-copy">
-          Select a section to edit its title, role, and text blocks.
-        </p>
-      </section>
-    );
-  }
-
   function updateBlock(blockId: string, text: string): void {
-    onChange?.({
+    onChange({
       ...section,
       blocks: section.blocks.map((block) =>
         block.id === blockId ? { ...block, text } : block,
@@ -48,7 +34,7 @@ export function SectionEditor({ section, onChange }: SectionEditorProps) {
             type="text"
             value={section.title}
             onChange={(event) =>
-              onChange?.({ ...section, title: event.target.value })
+              onChange({ ...section, title: event.target.value })
             }
           />
         </label>
@@ -57,7 +43,7 @@ export function SectionEditor({ section, onChange }: SectionEditorProps) {
           <select
             value={section.role}
             onChange={(event) =>
-              onChange?.({
+              onChange({
                 ...section,
                 role: event.target.value as SectionRole,
               })
@@ -75,7 +61,7 @@ export function SectionEditor({ section, onChange }: SectionEditorProps) {
             type="checkbox"
             checked={section.includeInToc}
             onChange={(event) =>
-              onChange?.({ ...section, includeInToc: event.target.checked })
+              onChange({ ...section, includeInToc: event.target.checked })
             }
           />
           <span>Include in table of contents</span>

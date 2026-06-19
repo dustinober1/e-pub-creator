@@ -1,10 +1,13 @@
 import type { BookMetadata } from "@epub-creator/core/book";
 
+export type EditableMetadata = Pick<
+  BookMetadata,
+  "title" | "author" | "language"
+>;
+
 interface MetadataPanelProps {
-  metadata: Pick<BookMetadata, "title" | "author" | "language">;
-  onChange?: (
-    metadata: Pick<BookMetadata, "title" | "author" | "language">,
-  ) => void;
+  metadata: EditableMetadata;
+  onChange: (metadata: EditableMetadata) => void;
 }
 
 export function MetadataPanel({ metadata, onChange }: MetadataPanelProps) {
@@ -18,7 +21,7 @@ export function MetadataPanel({ metadata, onChange }: MetadataPanelProps) {
             type="text"
             value={metadata.title}
             onChange={(event) =>
-              onChange?.({ ...metadata, title: event.target.value })
+              onChange({ ...metadata, title: event.target.value })
             }
           />
         </label>
@@ -28,7 +31,7 @@ export function MetadataPanel({ metadata, onChange }: MetadataPanelProps) {
             type="text"
             value={metadata.author}
             onChange={(event) =>
-              onChange?.({ ...metadata, author: event.target.value })
+              onChange({ ...metadata, author: event.target.value })
             }
           />
         </label>
@@ -38,7 +41,7 @@ export function MetadataPanel({ metadata, onChange }: MetadataPanelProps) {
             type="text"
             value={metadata.language}
             onChange={(event) =>
-              onChange?.({ ...metadata, language: event.target.value })
+              onChange({ ...metadata, language: event.target.value })
             }
           />
         </label>

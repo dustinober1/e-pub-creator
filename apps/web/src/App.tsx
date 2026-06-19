@@ -14,7 +14,10 @@ import {
   type ImportCompletion,
 } from "./components/ImportActions";
 import { ImportReview } from "./components/ImportReview";
-import { MetadataPanel } from "./components/MetadataPanel";
+import {
+  MetadataPanel,
+  type EditableMetadata,
+} from "./components/MetadataPanel";
 import { PreviewFrame } from "./components/PreviewFrame";
 import { SectionEditor } from "./components/SectionEditor";
 import { ThemeEditor } from "./components/ThemeEditor";
@@ -60,9 +63,9 @@ function createImportedMarkdownProject(title: string) {
 
 export function App() {
   const [activeProject, setActiveProject] = useState(sampleProject);
-  const [selectedSectionId, setSelectedSectionId] = useState(
-    sampleProject.sections[0]?.id,
-  );
+  const [selectedSectionId, setSelectedSectionId] = useState<
+    string | undefined
+  >(sampleProject.sections[0]?.id);
   const [importedProjectPath, setImportedProjectPath] = useState<string>();
   const [importReport, setImportReport] = useState<UploadImportReport>();
   const selectedSection = activeProject.sections.find(
@@ -85,7 +88,7 @@ export function App() {
     }));
   }
 
-  function handleMetadataChange(metadata: BookProject["metadata"]): void {
+  function handleMetadataChange(metadata: EditableMetadata): void {
     updateProject((project) => ({
       ...project,
       metadata: {
@@ -151,10 +154,22 @@ export function App() {
             metadata={activeProject.metadata}
             onChange={handleMetadataChange}
           />
-          <SectionEditor
-            section={selectedSection}
-            onChange={handleSectionChange}
-          />
+          {selectedSection ? (
+            <SectionEditor
+              section={selectedSection}
+              onChange={handleSectionChange}
+            />
+          ) : (
+            <section
+              className="panel section-editor"
+              aria-labelledby="section-editor-heading"
+            >
+              <h2 id="section-editor-heading">Section Editor</h2>
+              <p className="panel-copy">
+                Select a section to edit its title, role, and text blocks.
+              </p>
+            </section>
+          )}
           <ImportReview
             report={importReport ?? undefined}
             projectPath={importedProjectPath}
