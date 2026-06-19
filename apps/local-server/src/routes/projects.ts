@@ -1,4 +1,4 @@
-import { writeProjectFolder } from "@epub-creator/core";
+import { copyProjectAssetSources, writeProjectFolder } from "@epub-creator/core";
 import { importDocx, importMarkdown } from "@epub-creator/importers";
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
@@ -42,6 +42,7 @@ export async function importProjectRoute(request: Request): Promise<Response> {
   try {
     const imported = await importSource(source);
     await writeProjectFolder(project, imported.project);
+    await copyProjectAssetSources(project, imported.project);
 
     return Response.json({
       source,

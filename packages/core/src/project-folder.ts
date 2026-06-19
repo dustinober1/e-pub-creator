@@ -1,5 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import type { BookProject } from "./book";
 import { createManifest, PROJECT_FOLDER_PATHS, type ProjectManifest } from "./manifest";
 import { assertBundleLocalPath } from "./paths";
@@ -11,6 +11,20 @@ export async function writeProjectFolder(directory: string, project: BookProject
   await mkdir(join(directory, PROJECT_FOLDER_PATHS.snapshots), { recursive: true });
   await writeFile(join(directory, "manifest.json"), `${JSON.stringify(createManifest(project), null, 2)}\n`);
   await writeFile(join(directory, PROJECT_FOLDER_PATHS.content), `${JSON.stringify(project, null, 2)}\n`);
+}
+
+export async function copyProjectAssetSources(directory: string, project: BookProject): Promise<void> {
+  for (const asset of project.assets) {
+    if (!asset.source) {
+      continue;
+    }
+
+    assertBundleLocalPath(asset.projectPath, "asset projectPath");
+    const destination = join(directory, asset.projectPath);
+
+    await mkdir(dirname(destination), { recursive: true });
+    await copyFile(asset.source.path, destination);
+  }
 }
 
 export async function readProjectFolder(directory: string): Promise<BookProject> {

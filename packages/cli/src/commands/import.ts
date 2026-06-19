@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { writeProjectFolder } from "@epub-creator/core";
+import { copyProjectAssetSources, writeProjectFolder } from "@epub-creator/core";
 import { importMarkdown } from "@epub-creator/importers";
 import { readOptionalStringFlag, readRequiredStringFlag, type CliFlags } from "../flags";
 import { resolveCliPath } from "../paths";
@@ -15,6 +15,7 @@ export async function importCommand(flags: CliFlags): Promise<string> {
   });
 
   await writeProjectFolder(projectPath, result.project);
+  await copyProjectAssetSources(projectPath, result.project);
 
   return JSON.stringify(
     {

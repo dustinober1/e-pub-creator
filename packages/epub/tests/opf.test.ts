@@ -127,6 +127,34 @@ describe("createEpubPackage", () => {
       "CSS_MAY_NOT_SURVIVE_KDP"
     ]);
   });
+
+  it("only includes assets referenced by image blocks", () => {
+    const project = createBookProject({ title: "Export Book", author: "A. Writer", language: "en" });
+    const referenced = createAsset({
+      kind: "image",
+      projectPath: "assets/images/referenced.png",
+      mediaType: "image/png",
+      altText: "Referenced"
+    });
+    const unused = createAsset({
+      kind: "image",
+      projectPath: "assets/images/unused.png",
+      mediaType: "image/png",
+      altText: "Unused"
+    });
+    project.assets.push(referenced, unused);
+    project.sections.push(
+      createSection({
+        title: "Chapter One",
+        role: "body",
+        blocks: [createTextBlock("image", "", { assetId: referenced.id })]
+      })
+    );
+
+    const result = createEpubPackage(project, "body {}", "portable-epub3");
+
+    expect(result.assetFiles.map((asset) => asset.projectPath)).toEqual(["assets/images/referenced.png"]);
+  });
 });
 
 describe("writeEpubFile", () => {

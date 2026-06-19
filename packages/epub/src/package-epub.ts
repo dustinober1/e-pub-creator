@@ -1,4 +1,4 @@
-import type { BookProject } from "@epub-creator/core";
+import type { BookProject, ProjectAsset } from "@epub-creator/core";
 import { renderNavXhtml, renderSectionXhtml } from "@epub-creator/renderer";
 import {
   createValidationReport,
@@ -69,7 +69,7 @@ export function createEpubPackage(project: BookProject, css: string, profile: Ex
         mediaType: "application/xhtml+xml"
       }))
     ],
-    assetFiles: project.assets.map((asset) => ({
+    assetFiles: getReferencedAssets(project).map((asset) => ({
       path: `EPUB/${asset.projectPath}`,
       projectPath: asset.projectPath,
       assetId: asset.id,
@@ -78,4 +78,14 @@ export function createEpubPackage(project: BookProject, css: string, profile: Ex
     })),
     report
   };
+}
+
+function getReferencedAssets(project: BookProject): ProjectAsset[] {
+  const referencedAssetIds = new Set(
+    project.sections.flatMap((section) =>
+      section.blocks.flatMap((block) => (block.kind === "image" ? [block.assetId] : []))
+    )
+  );
+
+  return project.assets.filter((asset) => referencedAssetIds.has(asset.id));
 }

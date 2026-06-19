@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
@@ -109,6 +109,34 @@ describe("CLI commands", () => {
         profile: "portable-epub3"
       });
       expect(Array.from(exportedBytes.slice(0, 4))).toEqual([0x50, 0x4b, 0x03, 0x04]);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("imports local markdown images into the project asset folder before export", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "epub-creator-cli-image-"));
+
+    try {
+      const markdownPath = join(directory, "book.md");
+      const sourceImagePath = join(directory, "images", "plate.png");
+      const projectPath = join(directory, "Book.epubproj");
+      const outputPath = join(directory, "ImageBook.epub");
+      await mkdir(join(directory, "images"), { recursive: true });
+      await writeFile(sourceImagePath, Uint8Array.from([137, 80, 78, 71]));
+      await writeFile(markdownPath, "# Image Book\n\n## Chapter 1\n\n![Plate](images/plate.png)\n");
+
+      await importCommand({ source: markdownPath, project: projectPath });
+      const projectContent = JSON.parse(await readFile(join(projectPath, "content", "book.json"), "utf8")) as {
+        assets: Array<{ projectPath: string }>;
+      };
+      const copiedAssetPath = join(projectPath, projectContent.assets[0]?.projectPath ?? "");
+      await expect(readFile(copiedAssetPath)).resolves.toEqual(Buffer.from([137, 80, 78, 71]));
+
+      await exportCommand({ project: projectPath, output: outputPath });
+      const archiveText = (await readFile(outputPath)).toString("latin1");
+
+      expect(archiveText).toContain("EPUB/assets/images/001-plate.png");
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
