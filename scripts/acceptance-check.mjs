@@ -1,9 +1,11 @@
 import { execFileSync } from "node:child_process";
 
+const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+
 const commands = [
-  ["pnpm", ["test"]],
-  ["pnpm", ["typecheck"]],
-  ["pnpm", ["--filter", "@epub-creator/web", "build"]],
+  [pnpmCommand, ["test"]],
+  [pnpmCommand, ["typecheck"]],
+  [pnpmCommand, ["--filter", "@epub-creator/web", "build"]],
 ];
 
 for (const [command, args] of commands) {
