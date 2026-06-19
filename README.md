@@ -1,13 +1,14 @@
-# e-pub-creator
+# EPUB Creator
 
-A new repository for creating and managing EPUB content.
+Local-first EPUB creation and formatting app for DOCX/Markdown manuscripts.
 
-## Getting Started
+## Development
 
-This repository is currently initializing and can be extended with tools/scripts for building EPUB workflows.
+```bash
+pnpm install
+pnpm dev
+pnpm test
+pnpm typecheck
+```
 
-## Contributing
-
-- Create an issue before major changes.
-- Keep commits focused and descriptive.
-
+The app is designed as a local-first Vellum-style formatter. The web UI runs through Vite, and the local server/CLI share core TypeScript packages.
