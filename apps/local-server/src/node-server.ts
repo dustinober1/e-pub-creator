@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { createServerApp } from "./server";
 import type { ServerApp } from "./server";
 
@@ -14,10 +15,14 @@ type NodeRequestInit = RequestInit & {
 
 export function createNodeServer(app: ServerApp = createServerApp()): ReturnType<typeof createServer> {
   return createServer(async (request, response) => {
-    const fetchRequest = toFetchRequest(request);
-    const fetchResponse = await handleRequest(app, fetchRequest);
+    try {
+      const fetchRequest = toFetchRequest(request);
+      const fetchResponse = await handleRequest(app, fetchRequest);
 
-    await sendFetchResponse(fetchResponse, response, request.method ?? "GET");
+      await sendFetchResponse(fetchResponse, response, request.method ?? "GET");
+    } catch {
+      sendAdapterError(response);
+    }
   });
 }
 
@@ -80,12 +85,15 @@ async function sendFetchResponse(
     return;
   }
 
-  await new Promise<void>((resolve, reject) => {
-    const nodeBody = Readable.fromWeb(body);
+  await pipeline(Readable.fromWeb(body), serverResponse);
+}
 
-    nodeBody.once("error", reject);
-    serverResponse.once("error", reject);
-    serverResponse.once("finish", resolve);
-    nodeBody.pipe(serverResponse);
-  });
+function sendAdapterError(response: ServerResponse): void {
+  if (response.headersSent) {
+    response.destroy();
+    return;
+  }
+
+  response.writeHead(500, { "content-type": "application/json" });
+  response.end(JSON.stringify({ error: "Internal server error" }));
 }

@@ -46,6 +46,23 @@ describe("node server adapter", () => {
     await expect(response.json()).resolves.toEqual({ error: "Internal server error" });
   });
 
+  it("closes cleanly when response streaming fails after headers are sent", async () => {
+    const streamingFailureApp: ServerApp = {
+      async handle() {
+        return new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.error(new Error("stream failed"));
+            }
+          })
+        );
+      }
+    };
+    const server = await listenOnEphemeralPort(createNodeServer(streamingFailureApp));
+
+    await expect(fetch(serverUrl(server, "/api/health"))).rejects.toThrow();
+  });
+
   it("does not send a body for HEAD health requests", async () => {
     const server = await listenOnEphemeralPort(createNodeServer());
     const response = await fetch(serverUrl(server, "/api/health"), { method: "HEAD" });
