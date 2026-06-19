@@ -1,7 +1,19 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const importDocxBufferMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@epub-creator/importers", async () => {
+  const actual = await vi.importActual<typeof import("@epub-creator/importers")>("@epub-creator/importers");
+
+  return {
+    ...actual,
+    importDocxBuffer: importDocxBufferMock
+  };
+});
+
 import { createServerApp } from "../src/server";
 
 function importRequest(body: string): Request {
@@ -9,6 +21,13 @@ function importRequest(body: string): Request {
     method: "POST",
     body,
     headers: { "content-type": "application/json" }
+  });
+}
+
+function importUploadRequest(form: FormData): Request {
+  return new Request("http://127.0.0.1/api/projects/import/upload", {
+    method: "POST",
+    body: form
   });
 }
 
@@ -119,6 +138,125 @@ describe("project import route", () => {
   it("rejects non-POST methods with POST allow header", async () => {
     const app = createServerApp();
     const response = await app.handle(new Request("http://127.0.0.1/api/projects/import", { method: "GET" }));
+
+    expect(response.status).toBe(405);
+    expect(response.headers.get("allow")).toBe("POST");
+    await expect(response.json()).resolves.toEqual({ error: "Method not allowed" });
+  });
+});
+
+describe("project import upload route", () => {
+  it("imports an uploaded docx into a persisted project folder", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "epub-server-upload-"));
+
+    try {
+      const project = join(directory, "Draft.epubproj");
+      importDocxBufferMock.mockResolvedValueOnce({
+        project: {
+          metadata: {
+            title: "Uploaded Book"
+          },
+          sections: [
+            {
+              id: "section-1",
+              title: "Chapter One",
+              blocks: []
+            }
+          ],
+          assets: [],
+          notes: []
+        },
+        report: {
+          warnings: [{ code: "UNCLASSIFIED_BLOCK", message: "warning" }],
+          stats: { durationMs: 0 }
+        }
+      });
+
+      const form = new FormData();
+      form.set("file", new File([Buffer.from("docx bytes")], "book.docx"));
+      form.set("project", project);
+      form.set("author", "Sample Author");
+      form.set("language", "fr");
+
+      const app = createServerApp();
+      const response = await app.handle(importUploadRequest(form));
+      const body = (await response.json()) as {
+        bookProject: { metadata: { title: string }; sections: unknown[] };
+        project: string;
+        report: { warnings: unknown[] };
+        sectionCount: number;
+        source: string;
+        status: string;
+        title: string;
+        warningCount: number;
+      };
+      const projectContent = JSON.parse(await readFile(join(project, "content", "book.json"), "utf8")) as {
+        metadata: { title: string };
+        sections: unknown[];
+      };
+
+      expect(response.status).toBe(200);
+      expect(importDocxBufferMock).toHaveBeenCalledWith(Buffer.from("docx bytes"), {
+        sourcePath: "book.docx",
+        author: "Sample Author",
+        language: "fr"
+      });
+      expect(body).toMatchObject({
+        source: "book.docx",
+        project,
+        status: "imported",
+        title: "Uploaded Book",
+        sectionCount: 1,
+        warningCount: 1
+      });
+      expect(body.bookProject.metadata.title).toBe("Uploaded Book");
+      expect(body.report.warnings).toHaveLength(1);
+      expect(projectContent.metadata.title).toBe("Uploaded Book");
+      expect(projectContent.sections).toHaveLength(1);
+    } finally {
+      importDocxBufferMock.mockReset();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects upload requests without a file", async () => {
+    const form = new FormData();
+    form.set("project", "Draft.epubproj");
+
+    const app = createServerApp();
+    const response = await app.handle(importUploadRequest(form));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "DOCX file is required." });
+  });
+
+  it("rejects uploads that are not docx files", async () => {
+    const form = new FormData();
+    form.set("file", new File([Buffer.from("text")], "book.txt"));
+    form.set("project", "Draft.epubproj");
+
+    const app = createServerApp();
+    const response = await app.handle(importUploadRequest(form));
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "Only .docx uploads are supported." });
+  });
+
+  it("rejects uploads over the configured size limit", async () => {
+    const form = new FormData();
+    form.set("file", new File([new Uint8Array(25 * 1024 * 1024 + 1)], "book.docx"));
+    form.set("project", "Draft.epubproj");
+
+    const app = createServerApp();
+    const response = await app.handle(importUploadRequest(form));
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({ error: "DOCX upload is too large." });
+  });
+
+  it("rejects non-POST methods with POST allow header", async () => {
+    const app = createServerApp();
+    const response = await app.handle(new Request("http://127.0.0.1/api/projects/import/upload", { method: "GET" }));
 
     expect(response.status).toBe(405);
     expect(response.headers.get("allow")).toBe("POST");

@@ -1,7 +1,9 @@
 import { copyProjectAssetSources, writeProjectFolder } from "@epub-creator/core";
-import { importDocx, importMarkdown } from "@epub-creator/importers";
+import { importDocx, importDocxBuffer, importMarkdown } from "@epub-creator/importers";
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
+
+const DOCX_UPLOAD_SIZE_LIMIT = 25 * 1024 * 1024;
 
 export function projectsRoute(): Response {
   return Response.json({ openProject: null, recentProjects: [] });
@@ -58,6 +60,55 @@ export async function importProjectRoute(request: Request): Promise<Response> {
   }
 }
 
+export async function importProjectUploadRoute(request: Request): Promise<Response> {
+  const form = await request.formData();
+  const file = form.get("file");
+
+  if (!(file instanceof File)) {
+    return Response.json({ error: "DOCX file is required." }, { status: 400 });
+  }
+
+  if (!file.name.toLowerCase().endsWith(".docx")) {
+    return Response.json({ error: "Only .docx uploads are supported." }, { status: 400 });
+  }
+
+  if (file.size > DOCX_UPLOAD_SIZE_LIMIT) {
+    return Response.json({ error: "DOCX upload is too large." }, { status: 413 });
+  }
+
+  const projectPath = readOptionalFormString(form, "project");
+  const author = readOptionalFormString(form, "author");
+  const language = readOptionalFormString(form, "language");
+
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const imported = await importDocxBuffer(buffer, {
+      sourcePath: file.name,
+      author: author ?? "Unknown Author",
+      language: language ?? "en"
+    });
+
+    if (projectPath) {
+      await writeProjectFolder(projectPath, imported.project);
+      await copyProjectAssetSources(projectPath, imported.project);
+    }
+
+    return Response.json({
+      source: file.name,
+      project: projectPath,
+      status: "imported",
+      title: imported.project.metadata.title,
+      sectionCount: imported.project.sections.length,
+      warningCount: imported.report.warnings.length,
+      bookProject: imported.project,
+      report: imported.report
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return Response.json({ error: `Import failed: ${message}` }, { status: 400 });
+  }
+}
+
 async function importSource(source: string) {
   const extension = extname(source).toLowerCase();
 
@@ -83,4 +134,15 @@ async function importSource(source: string) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readOptionalFormString(form: FormData, key: string): string | undefined {
+  const value = form.get(key);
+
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
 }
