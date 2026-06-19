@@ -93,6 +93,29 @@ describe("importHtmlFragment", () => {
     expect(result.project.sections.map((section) => section.title)).toEqual(["Chapter One", "Chapter Two"]);
   });
 
+  it("skips title-page text before h2 section structure with a warning", () => {
+    const html = `
+      <h1>Book Title</h1>
+      <p>Author Name</p>
+      <h2>Chapter One</h2>
+      <p>The first paragraph begins.</p>
+    `;
+
+    const result = importHtmlFragment(html, {
+      sourcePath: "sample.docx",
+      author: "Sample Author",
+      language: "en"
+    });
+
+    expect(result.project.metadata.title).toBe("Book Title");
+    expect(result.project.sections.map((section) => section.title)).toEqual(["Chapter One"]);
+    expect(result.project.sections[0]?.blocks.map((block) => block.text)).toEqual(["The first paragraph begins."]);
+    expect(result.report.warnings).toContainEqual({
+      code: "UNCLASSIFIED_BLOCK",
+      message: "Skipped content before first section: Author Name"
+    });
+  });
+
   it("maps classed mammoth paragraphs to semantic blocks", () => {
     const html = `
       <h1>Formatting Stress Book</h1>
@@ -133,13 +156,31 @@ describe("importHtmlFragment", () => {
     expect(result.project.sections[0]?.blocks.map((block) => block.kind)).toEqual([
       "paragraph",
       "footnote",
-      "footnote"
+      "endnote"
     ]);
     expect(result.project.sections[0]?.blocks.map((block) => block.text)).toEqual([
       "The first paragraph begins.",
       "A preserved footnote.",
       "A preserved endnote."
     ]);
+  });
+
+  it("imports endnote body list items as endnote blocks", () => {
+    const html = `
+      <h1>Formatting Stress Book</h1>
+      <h2>Chapter One</h2>
+      <p>The first paragraph begins.</p>
+      <ol><li id="endnote-1">A preserved endnote. <a href="#endnote-ref-1">↑</a></li></ol>
+    `;
+
+    const result = importHtmlFragment(html, {
+      sourcePath: "sample.docx",
+      author: "Sample Author",
+      language: "en"
+    });
+
+    expect(result.project.sections[0]?.blocks.map((block) => block.kind)).toEqual(["paragraph", "endnote"]);
+    expect(result.project.sections[0]?.blocks[1]?.text).toBe("A preserved endnote.");
   });
 });
 

@@ -68,6 +68,12 @@ export function importHtmlFragment(html: string, options: HtmlImportOptions): Ht
     }
 
     if (!currentTitle) {
+      if (hasMeaningfulBodyContent(token)) {
+        report.warnings.push({
+          code: "UNCLASSIFIED_BLOCK",
+          message: `Skipped content before first section: ${describeSkippedToken(token)}`
+        });
+      }
       continue;
     }
 
@@ -76,8 +82,9 @@ export function importHtmlFragment(html: string, options: HtmlImportOptions): Ht
       continue;
     }
 
-    if (token.tag === "li" && isNoteBodyItem(token)) {
-      blocks.push(createTextBlock("footnote", stripNoteBacklinks(token.html)));
+    const noteKind = noteBodyKind(token);
+    if (noteKind) {
+      blocks.push(createTextBlock(noteKind, stripNoteBacklinks(token.html)));
       continue;
     }
 
@@ -138,6 +145,10 @@ function isDocumentTitleHeading(tokens: HtmlToken[], index: number, title: strin
     return false;
   }
 
+  if (tokens.some((candidate, candidateIndex) => candidateIndex > index && candidate.tag === "h2")) {
+    return true;
+  }
+
   for (let nextIndex = index + 1; nextIndex < tokens.length; nextIndex += 1) {
     const nextToken = tokens[nextIndex];
 
@@ -163,6 +174,18 @@ function hasMeaningfulBodyContent(token: HtmlToken): boolean {
   }
 
   return token.text.length > 0 || token.classNames.includes("scene-break");
+}
+
+function describeSkippedToken(token: HtmlToken): string {
+  if (token.text.length > 0) {
+    return token.text;
+  }
+
+  if (token.classNames.includes("scene-break")) {
+    return "scene break";
+  }
+
+  return token.tag;
 }
 
 function readClassNames(html: string): string[] {
@@ -191,8 +214,22 @@ function isNoteReferenceParagraph(token: HtmlToken): boolean {
   );
 }
 
-function isNoteBodyItem(token: HtmlToken): boolean {
-  return /\b(?:footnote|endnote)\b/i.test(openingTagOf(token.html));
+function noteBodyKind(token: HtmlToken): "footnote" | "endnote" | undefined {
+  if (token.tag !== "li") {
+    return undefined;
+  }
+
+  const openingTag = openingTagOf(token.html);
+
+  if (/\bendnote\b/i.test(openingTag)) {
+    return "endnote";
+  }
+
+  if (/\bfootnote\b/i.test(openingTag)) {
+    return "footnote";
+  }
+
+  return undefined;
 }
 
 function stripNoteBacklinks(html: string): string {
