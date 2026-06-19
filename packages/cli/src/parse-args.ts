@@ -16,7 +16,15 @@ export function parseArgs(argv: string[]): ParsedArgs {
       continue;
     }
 
-    const name = token.slice(2);
+    const rawFlag = token.slice(2);
+    const separatorIndex = rawFlag.indexOf("=");
+
+    if (separatorIndex !== -1) {
+      flags[rawFlag.slice(0, separatorIndex)] = rawFlag.slice(separatorIndex + 1);
+      continue;
+    }
+
+    const name = rawFlag;
     const next = tokens[index + 1];
 
     if (next === undefined || next.startsWith("--")) {

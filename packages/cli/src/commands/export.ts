@@ -1,9 +1,7 @@
 import { readProjectFolder } from "@epub-creator/core";
 import { createEpubPackage } from "@epub-creator/epub";
 import type { ExportProfile } from "@epub-creator/validation";
-import type { ParsedArgs } from "../parse-args";
-
-type CliFlags = ParsedArgs["flags"];
+import { readRequiredStringFlag, type CliFlags } from "../flags";
 
 const DEFAULT_EXPORT_PROFILE: ExportProfile = "portable-epub3";
 const EXPORT_CSS = "body { line-height: 1.55; }";
@@ -24,16 +22,6 @@ export async function exportCommand(flags: CliFlags): Promise<string> {
     null,
     2
   );
-}
-
-function readRequiredStringFlag(flags: CliFlags, name: string): string {
-  const value = flags[name];
-
-  if (typeof value !== "string" || value.length === 0) {
-    throw new Error(`Missing required --${name} flag`);
-  }
-
-  return value;
 }
 
 function readExportProfile(value: string | boolean | undefined): ExportProfile {

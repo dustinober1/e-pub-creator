@@ -1,4 +1,5 @@
-#!/usr/bin/env node
+#!/usr/bin/env -S tsx
+import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { exportCommand } from "./commands/export";
 import { importCommand } from "./commands/import";
@@ -25,7 +26,11 @@ export async function runCli(argv = process.argv.slice(2)): Promise<string> {
     return themesCommand();
   }
 
-  return usageText();
+  if (command === "help") {
+    return usageText();
+  }
+
+  throw new Error(`Unknown command: ${command}\n${usageText()}`);
 }
 
 function usageText(): string {
@@ -41,7 +46,17 @@ function usageText(): string {
 }
 
 function isExecutableEntrypoint(): boolean {
-  return process.argv[1] === fileURLToPath(import.meta.url);
+  const invokedPath = process.argv[1];
+
+  if (!invokedPath) {
+    return false;
+  }
+
+  try {
+    return realpathSync(invokedPath) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
 }
 
 if (isExecutableEntrypoint()) {

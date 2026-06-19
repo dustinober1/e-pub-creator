@@ -1,9 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { writeProjectFolder } from "@epub-creator/core";
 import { importMarkdown } from "@epub-creator/importers";
-import type { ParsedArgs } from "../parse-args";
-
-type CliFlags = ParsedArgs["flags"];
+import { readOptionalStringFlag, readRequiredStringFlag, type CliFlags } from "../flags";
 
 export async function importCommand(flags: CliFlags): Promise<string> {
   const source = readRequiredStringFlag(flags, "source");
@@ -26,19 +24,4 @@ export async function importCommand(flags: CliFlags): Promise<string> {
     null,
     2
   );
-}
-
-function readRequiredStringFlag(flags: CliFlags, name: string): string {
-  const value = readOptionalStringFlag(flags, name);
-
-  if (!value) {
-    throw new Error(`Missing required --${name} flag`);
-  }
-
-  return value;
-}
-
-function readOptionalStringFlag(flags: CliFlags, name: string): string | undefined {
-  const value = flags[name];
-  return typeof value === "string" ? value : undefined;
 }

@@ -11,4 +11,31 @@ describe("parseArgs", () => {
       }
     });
   });
+
+  it("parses equals-style flags", () => {
+    expect(parseArgs(["validate", "--project=Book.epubproj"])).toEqual({
+      command: "validate",
+      flags: {
+        project: "Book.epubproj"
+      }
+    });
+  });
+
+  it("parses boolean flags", () => {
+    expect(parseArgs(["export", "--dry-run"])).toEqual({
+      command: "export",
+      flags: {
+        "dry-run": true
+      }
+    });
+  });
+
+  it("ignores stray positional args", () => {
+    expect(parseArgs(["themes", "extra", "--json"])).toEqual({
+      command: "themes",
+      flags: {
+        json: true
+      }
+    });
+  });
 });
