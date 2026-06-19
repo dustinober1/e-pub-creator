@@ -1,8 +1,12 @@
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createAsset, createBookProject, createSection, createTextBlock } from "@epub-creator/core";
 import { EPUB_MIMETYPE } from "../src/mimetype";
 import { renderOpf } from "../src/opf";
 import { createEpubPackage } from "../src/package-epub";
+import { writeEpubFile } from "../src/write-epub";
 
 describe("renderOpf", () => {
   it("renders EPUB 3 package metadata and manifest entries", () => {
@@ -124,3 +128,79 @@ describe("createEpubPackage", () => {
     ]);
   });
 });
+
+describe("writeEpubFile", () => {
+  it("writes a real EPUB zip with mimetype first and copied assets", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "epub-writer-"));
+
+    try {
+      const projectDirectory = join(directory, "Project");
+      const assetDirectory = join(projectDirectory, "assets", "images");
+      const outputPath = join(directory, "book.epub");
+      const assetBytes = Uint8Array.from([137, 80, 78, 71]);
+      await mkdir(assetDirectory, { recursive: true });
+      await writeFile(join(assetDirectory, "plate.png"), assetBytes);
+
+      const project = createBookProject({ title: "Export Book", author: "A. Writer", language: "en" });
+      const asset = createAsset({
+        kind: "image",
+        projectPath: "assets/images/plate.png",
+        mediaType: "image/png",
+        altText: "Plate"
+      });
+      project.assets.push(asset);
+      project.sections.push(
+        createSection({
+          title: "Chapter One",
+          role: "body",
+          blocks: [createTextBlock("paragraph", "Opening."), createTextBlock("image", "", { assetId: asset.id })]
+        })
+      );
+
+      const packageResult = createEpubPackage(project, "body { line-height: 1.5; }", "portable-epub3");
+      await writeEpubFile({ projectDirectory, outputPath, packageResult });
+
+      const entries = readStoredZipEntries(await readFile(outputPath));
+
+      expect(entries.map((entry) => entry.name)).toEqual([
+        "mimetype",
+        "META-INF/container.xml",
+        "EPUB/package.opf",
+        "EPUB/nav.xhtml",
+        "EPUB/styles/book.css",
+        "EPUB/sections/section-1.xhtml",
+        "EPUB/assets/images/plate.png"
+      ]);
+      expect(new TextDecoder().decode(entries[0]?.content)).toBe(EPUB_MIMETYPE);
+      expect(entries[0]?.method).toBe(0);
+      expect(Array.from(entries.find((entry) => entry.name === "EPUB/assets/images/plate.png")?.content ?? [])).toEqual(
+        Array.from(assetBytes)
+      );
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+});
+
+function readStoredZipEntries(buffer: Uint8Array): Array<{ name: string; method: number; content: Uint8Array }> {
+  const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+  const entries: Array<{ name: string; method: number; content: Uint8Array }> = [];
+  let offset = 0;
+
+  while (view.getUint32(offset, true) === 0x04034b50) {
+    const method = view.getUint16(offset + 8, true);
+    const compressedSize = view.getUint32(offset + 18, true);
+    const nameLength = view.getUint16(offset + 26, true);
+    const extraLength = view.getUint16(offset + 28, true);
+    const nameStart = offset + 30;
+    const contentStart = nameStart + nameLength + extraLength;
+    const contentEnd = contentStart + compressedSize;
+    const name = new TextDecoder().decode(buffer.slice(nameStart, nameStart + nameLength));
+    const content = buffer.slice(contentStart, contentEnd);
+
+    entries.push({ name, method, content });
+    offset = contentEnd;
+  }
+
+  return entries;
+}

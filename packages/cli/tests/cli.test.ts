@@ -32,6 +32,37 @@ describe("CLI commands", () => {
     );
   });
 
+  it("resolves path flags relative to the original script directory", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "epub-creator-cli-cwd-"));
+    const previousInitCwd = process.env.INIT_CWD;
+
+    try {
+      process.env.INIT_CWD = directory;
+      await writeFile(join(directory, "book.md"), "# Relative Book\n\n## Chapter 1\n\nA short paragraph.\n");
+
+      const importOutput = JSON.parse(await importCommand({ source: "book.md", project: "Book.epubproj" })) as {
+        project: string;
+        title: string;
+      };
+      const projectContent = JSON.parse(
+        await readFile(join(directory, "Book.epubproj", "content", "book.json"), "utf8")
+      ) as { metadata: { title: string } };
+
+      expect(importOutput).toMatchObject({
+        project: join(directory, "Book.epubproj"),
+        title: "Relative Book"
+      });
+      expect(projectContent.metadata.title).toBe("Relative Book");
+    } finally {
+      if (previousInitCwd === undefined) {
+        delete process.env.INIT_CWD;
+      } else {
+        process.env.INIT_CWD = previousInitCwd;
+      }
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it("imports, validates, and exports a local markdown project", async () => {
     const directory = await mkdtemp(join(tmpdir(), "epub-creator-cli-"));
 
@@ -50,11 +81,16 @@ describe("CLI commands", () => {
       const validationOutput = JSON.parse(await validateCommand({ project: projectPath })) as {
         issues: unknown[];
       };
-      const exportOutput = JSON.parse(await exportCommand({ project: projectPath, profile: "portable-epub3" })) as {
+      const outputPath = join(directory, "TestBook.epub");
+      const exportOutput = JSON.parse(
+        await exportCommand({ project: projectPath, profile: "portable-epub3", output: outputPath })
+      ) as {
         fileCount: number;
         issueCount: number;
+        outputPath: string;
         profile: string;
       };
+      const exportedBytes = await readFile(outputPath);
 
       expect(importOutput).toEqual({
         project: projectPath,
@@ -69,8 +105,10 @@ describe("CLI commands", () => {
       expect(exportOutput).toMatchObject({
         fileCount: 6,
         issueCount: 0,
+        outputPath,
         profile: "portable-epub3"
       });
+      expect(Array.from(exportedBytes.slice(0, 4))).toEqual([0x50, 0x4b, 0x03, 0x04]);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

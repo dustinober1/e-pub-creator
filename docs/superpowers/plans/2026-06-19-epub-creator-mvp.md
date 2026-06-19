@@ -3872,9 +3872,9 @@ Keep the formatting-heavy real manuscript outside this open-source repo. Use a l
 Acceptance run:
 
 ```bash
-pnpm --filter @epub-creator/cli exec epub-creator import --source ~/Documents/epub-creator-private-fixtures/<book-name>/manuscript.md --project ~/Documents/epub-creator-private-fixtures/<book-name>/project
-pnpm --filter @epub-creator/cli exec epub-creator validate --project ~/Documents/epub-creator-private-fixtures/<book-name>/project
-pnpm --filter @epub-creator/cli exec epub-creator export --project ~/Documents/epub-creator-private-fixtures/<book-name>/project --profile kdp-safe
+pnpm --filter @epub-creator/cli cli import --source ~/Documents/epub-creator-private-fixtures/<book-name>/manuscript.md --project ~/Documents/epub-creator-private-fixtures/<book-name>/project
+pnpm --filter @epub-creator/cli cli validate --project ~/Documents/epub-creator-private-fixtures/<book-name>/project
+pnpm --filter @epub-creator/cli cli export --project ~/Documents/epub-creator-private-fixtures/<book-name>/project --profile kdp-safe --output ~/Documents/epub-creator-private-fixtures/<book-name>/<book-name>.epub
 pnpm acceptance
 ```
 

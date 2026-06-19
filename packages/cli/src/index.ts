@@ -40,7 +40,7 @@ function usageText(): string {
     "Commands:",
     "  import --source <book.md> --project <folder>",
     "  validate --project <folder>",
-    "  export --project <folder> [--profile <profile>]",
+    "  export --project <folder> [--profile <profile>] [--output <book.epub>]",
     "  themes"
   ].join("\n");
 }

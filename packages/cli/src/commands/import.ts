@@ -2,10 +2,11 @@ import { readFile } from "node:fs/promises";
 import { writeProjectFolder } from "@epub-creator/core";
 import { importMarkdown } from "@epub-creator/importers";
 import { readOptionalStringFlag, readRequiredStringFlag, type CliFlags } from "../flags";
+import { resolveCliPath } from "../paths";
 
 export async function importCommand(flags: CliFlags): Promise<string> {
-  const source = readRequiredStringFlag(flags, "source");
-  const projectPath = readRequiredStringFlag(flags, "project");
+  const source = resolveCliPath(readRequiredStringFlag(flags, "source"));
+  const projectPath = resolveCliPath(readRequiredStringFlag(flags, "project"));
   const markdown = await readFile(source, "utf8");
   const result = importMarkdown(markdown, {
     sourcePath: source,
