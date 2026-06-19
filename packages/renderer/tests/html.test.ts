@@ -20,6 +20,7 @@ describe("renderSectionXhtml", () => {
     const xhtml = renderSectionXhtml(project, section);
 
     expect(xhtml).toContain('<section epub:type="chapter"');
+    expect(xhtml).toContain('<header class="chapter-title"><h1>Chapter One</h1></header>');
     expect(xhtml).toContain('<p class="paragraph">Opening paragraph.</p>');
     expect(xhtml).toContain('<div class="scene-break" aria-hidden="true"></div>');
     expect(xhtml).toContain('<blockquote class="epigraph">A line before the chapter.</blockquote>');
@@ -61,7 +62,7 @@ describe("renderSectionXhtml", () => {
     expect(xhtml).toContain('<div class="email">sender@example.com</div>');
     expect(xhtml).toContain('<div class="message">Text me &gt; later.</div>');
     expect(xhtml).toContain('<div class="poem"><p>First line</p><p>Second line</p></div>');
-    expect(xhtml).toContain('<img src="assets/images/plate.png" alt="Plate &amp; caption" />');
+    expect(xhtml).toContain('<img src="../assets/images/plate.png" alt="Plate &amp; caption" />');
     expect(xhtml).toContain('<aside id="fn-1" epub:type="footnote" class="footnote">Footnote text.</aside>');
     expect(xhtml).toContain('<aside id="en-1" epub:type="endnote" class="endnote">Endnote text.</aside>');
   });
@@ -79,7 +80,34 @@ describe("renderNavXhtml", () => {
 
     expect(nav).toContain('<nav epub:type="toc" id="toc">');
     expect(nav).toContain("Chapter &lt;One&gt;");
+    expect(nav).toContain('href="sections/section-2.xhtml"');
     expect(nav).not.toContain("Copyright");
+  });
+
+  it("renders TOC hrefs from exported section positions instead of generated ids", () => {
+    const project = createBookProject({ title: "Nav Book", author: "A. Writer", language: "en" });
+    project.sections.push(
+      {
+        ...createSection({ title: "Prologue", role: "front", includeInToc: true, blocks: [] }),
+        id: "generated-prologue-id"
+      },
+      {
+        ...createSection({ title: "Chapter One", role: "body", includeInToc: true, blocks: [] }),
+        id: "generated-chapter-id"
+      },
+      {
+        ...createSection({ title: "Acknowledgments", role: "back", includeInToc: false, blocks: [] }),
+        id: "generated-back-id"
+      }
+    );
+
+    const nav = renderNavXhtml(project);
+
+    expect(nav).toContain('href="sections/section-1.xhtml"');
+    expect(nav).toContain('href="sections/section-2.xhtml"');
+    expect(nav).not.toContain("generated-prologue-id.xhtml");
+    expect(nav).not.toContain("generated-chapter-id.xhtml");
+    expect(nav).not.toContain("sections/section-3.xhtml");
   });
 });
 
@@ -87,12 +115,14 @@ describe("mergeCss", () => {
   it("appends custom properties when overrides exist", () => {
     const css = mergeCss("body { color: black; }", {
       "--accent": "#333",
-      "--font-body": "Georgia"
+      accentColor: "#444",
+      fontBody: "Georgia"
     });
 
     expect(css).toContain("body { color: black; }");
     expect(css).toContain(":root {");
     expect(css).toContain("--accent: #333;");
+    expect(css).toContain("--accent-color: #444;");
     expect(css).toContain("--font-body: Georgia;");
   });
 });

@@ -23,7 +23,7 @@ export function renderSectionXhtml(project: BookProject, section: BookSection): 
     "  </head>",
     "  <body>",
     `    <section epub:type="${sectionType}" id="${escapeAttribute(section.id)}">`,
-    `      <header><h1>${title}</h1></header>`,
+    `      <header class="chapter-title"><h1>${title}</h1></header>`,
     renderedBlocks ? `      ${renderedBlocks}` : "",
     "    </section>",
     "  </body>",
@@ -84,7 +84,7 @@ function renderImage(project: BookProject, block: Extract<TextBlock, { kind: "im
     throw new Error(`Image asset not found: ${block.assetId}`);
   }
 
-  return `<figure class="${escapeAttribute(classNameFor(block, "image"))}"><img src="${escapeAttribute(asset.projectPath)}" alt="${escapeAttribute(asset.altText)}" /></figure>`;
+  return `<figure class="${escapeAttribute(classNameFor(block, "image"))}"><img src="${escapeAttribute(`../${asset.projectPath}`)}" alt="${escapeAttribute(asset.altText)}" /></figure>`;
 }
 
 function renderNote(block: TextBlock, type: "footnote" | "endnote"): string {

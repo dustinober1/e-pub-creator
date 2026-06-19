@@ -5,10 +5,11 @@ export function renderNavXhtml(project: BookProject): string {
   const lang = escapeAttribute(project.metadata.language);
   const title = escapeHtml(project.metadata.title);
   const items = project.sections
-    .filter((section) => section.includeInToc)
+    .map((section, index) => ({ section, index }))
+    .filter(({ section }) => section.includeInToc)
     .map(
-      (section) =>
-        `<li><a href="${escapeAttribute(`${section.id}.xhtml`)}">${escapeHtml(section.title)}</a></li>`
+      ({ section, index }) =>
+        `<li><a href="${escapeAttribute(`sections/section-${index + 1}.xhtml`)}">${escapeHtml(section.title)}</a></li>`
     )
     .join("\n        ");
 

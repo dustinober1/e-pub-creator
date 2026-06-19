@@ -5,7 +5,19 @@ export function mergeCss(themeCss: string, projectOverrides: Record<string, stri
     return themeCss;
   }
 
-  const customProperties = entries.map(([name, value]) => `  ${name}: ${value};`).join("\n");
+  const customProperties = entries.map(([name, value]) => `  ${toCustomPropertyName(name)}: ${value};`).join("\n");
 
   return `${themeCss}\n\n:root {\n${customProperties}\n}`;
+}
+
+function toCustomPropertyName(name: string): string {
+  if (/[\s\u0000-\u001F\u007F]/.test(name)) {
+    throw new Error(`Invalid CSS override token name: ${name}`);
+  }
+
+  if (name.startsWith("--")) {
+    return name;
+  }
+
+  return `--${name.replaceAll(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()}`;
 }
