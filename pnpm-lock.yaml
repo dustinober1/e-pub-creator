@@ -73,6 +73,16 @@ importers:
         specifier: ^5.8.3
         version: 5.9.3
 
+  packages/importers:
+    dependencies:
+      '@epub-creator/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
 packages:
 
   '@adobe/css-tools@4.5.0':
