@@ -11,7 +11,8 @@
     "lint": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@epub-creator/core": "workspace:*"
+    "@epub-creator/core": "workspace:*",
+    "mammoth": "^1.9.1"
   },
   "devDependencies": {
     "typescript": "^5.8.3"
