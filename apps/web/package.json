@@ -10,6 +10,8 @@
     "lint": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@epub-creator/core": "workspace:*",
+    "@epub-creator/renderer": "workspace:*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

@@ -63,6 +63,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@epub-creator/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@epub-creator/renderer':
+        specifier: workspace:*
+        version: link:../../packages/renderer
       react:
         specifier: ^19.1.0
         version: 19.2.7

@@ -3,11 +3,12 @@ import { describe, expect, it } from "vitest";
 import { App } from "../src/App";
 
 describe("App", () => {
-  it("renders the local-first workspace shell", () => {
+  it("renders project workspace surfaces", () => {
     render(<App />);
 
-    expect(screen.getByRole("heading", { name: "EPUB Creator" })).toBeInTheDocument();
-    expect(screen.getByRole("navigation", { name: "Book outline" })).toBeInTheDocument();
-    expect(screen.getByText("EPUB XHTML preview will render here.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Formatting Stress Book" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Book Outline" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Themes" })).toBeInTheDocument();
+    expect(screen.getByTitle("EPUB XHTML preview")).toBeInTheDocument();
   });
 });

@@ -1,24 +1,63 @@
+import { createBookProject, createSection, createTextBlock } from "@epub-creator/core/src/book";
+import { renderSectionXhtml } from "@epub-creator/renderer/src/html";
+import { BookOutline } from "./components/BookOutline";
+import { ImportReview } from "./components/ImportReview";
+import { MetadataPanel } from "./components/MetadataPanel";
+import { PreviewFrame } from "./components/PreviewFrame";
+import { ThemeGallery } from "./components/ThemeGallery";
+import { ValidationPanel } from "./components/ValidationPanel";
+
+const sampleProject = (() => {
+  const project = createBookProject({
+    title: "Formatting Stress Book",
+    author: "Sample Author",
+    language: "en"
+  });
+
+  const chapter = createSection({
+    title: "Chapter One",
+    role: "body",
+    blocks: [
+      createTextBlock("paragraph", "The first paragraph tests ordinary prose flow and margins in the preview pane."),
+      createTextBlock("scene-break", ""),
+      createTextBlock("epigraph", "A sample epigraph checks quote treatment before export.")
+    ]
+  });
+
+  return {
+    ...project,
+    sections: [chapter]
+  };
+})();
+
 export function App() {
+  const previewSection = sampleProject.sections[0];
+  const previewXhtml = previewSection ? renderSectionXhtml(sampleProject, previewSection) : "";
+
   return (
     <main className="app-shell">
       <header className="topbar">
         <div>
-          <h1>EPUB Creator</h1>
-          <p>Local-first book formatting workspace</p>
+          <h1>{sampleProject.metadata.title}</h1>
+          <p>
+            {sampleProject.metadata.author} / {sampleProject.metadata.language}
+          </p>
         </div>
       </header>
       <section className="workspace-grid" aria-label="Workspace">
-        <nav className="panel" aria-label="Book outline">
-          <h2>Outline</h2>
-          <p>No project loaded.</p>
-        </nav>
-        <section className="panel" aria-label="Editor">
-          <h2>Editor</h2>
-          <p>Import a DOCX or Markdown file to start.</p>
+        <BookOutline sections={sampleProject.sections} />
+        <section className="preview-panel" aria-labelledby="preview-heading">
+          <div className="preview-header">
+            <h2 id="preview-heading">Preview</h2>
+            <span>{previewSection?.title}</span>
+          </div>
+          <PreviewFrame srcDoc={previewXhtml} />
         </section>
-        <aside className="panel" aria-label="Preview and validation">
-          <h2>Preview</h2>
-          <p>EPUB XHTML preview will render here.</p>
+        <aside className="stack" aria-label="Project controls">
+          <MetadataPanel metadata={sampleProject.metadata} />
+          <ImportReview />
+          <ThemeGallery />
+          <ValidationPanel />
         </aside>
       </section>
     </main>
