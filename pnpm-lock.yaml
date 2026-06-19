@@ -86,6 +86,25 @@ importers:
         specifier: ^5.8.3
         version: 5.9.3
 
+  packages/renderer:
+    dependencies:
+      '@epub-creator/core':
+        specifier: workspace:*
+        version: link:../core
+      '@epub-creator/themes':
+        specifier: workspace:*
+        version: link:../themes
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
+  packages/themes:
+    devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+
 packages:
 
   '@adobe/css-tools@4.5.0':
