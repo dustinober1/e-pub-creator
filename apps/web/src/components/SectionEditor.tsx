@@ -72,6 +72,11 @@ export function SectionEditor({ section, onChange }: SectionEditorProps) {
           isEditableBlock(block) ? (
             <label key={block.id} className="editor-field">
               <span>{`Block ${index + 1} (${block.kind})`}</span>
+              {block.reviewStatus ? (
+                <span className={`review-status-label review-status-${block.reviewStatus}`}>
+                  {formatReviewStatus(block.reviewStatus)}
+                </span>
+              ) : null}
               <textarea
                 value={block.text}
                 onChange={(event) => updateBlock(block.id, event.target.value)}
@@ -81,6 +86,11 @@ export function SectionEditor({ section, onChange }: SectionEditorProps) {
           ) : (
             <div key={block.id} className="readonly-block-row">
               <span className="readonly-block-kind">{`Block ${index + 1} (${block.kind})`}</span>
+              {block.reviewStatus ? (
+                <span className={`review-status-label review-status-${block.reviewStatus}`}>
+                  {formatReviewStatus(block.reviewStatus)}
+                </span>
+              ) : null}
               <span className="readonly-block-summary">
                 {summarizeReadOnlyBlock(block)}
               </span>
@@ -106,4 +116,10 @@ function summarizeReadOnlyBlock(block: TextBlock): string {
   }
 
   return block.text;
+}
+
+function formatReviewStatus(
+  reviewStatus: NonNullable<TextBlock["reviewStatus"]>,
+): string {
+  return reviewStatus.replace("-", " ");
 }

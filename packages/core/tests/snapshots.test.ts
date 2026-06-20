@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createBookProject } from "../src/book";
-import { createSnapshot } from "../src/snapshots";
+import { createSnapshot, listSnapshots, readSnapshot } from "../src/snapshots";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -44,5 +44,30 @@ describe("snapshots", () => {
     const content = JSON.parse(await readFile(snapshot.path, "utf8"));
 
     expect(content.metadata.title).toBe("Snapshot Book");
+  });
+
+  it("lists and reads created snapshots", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "epub-snapshot-"));
+    const project = createBookProject({ title: "Snapshot Book", author: "A. Writer", language: "en" });
+
+    const snapshot = await createSnapshot(directory, project, "before-export");
+    const snapshots = await listSnapshots(directory);
+    const restored = await readSnapshot(directory, snapshot.id);
+
+    expect(snapshots).toEqual([
+      expect.objectContaining({
+        id: snapshot.id,
+        reason: "before-export"
+      })
+    ]);
+    expect(restored.metadata.title).toBe("Snapshot Book");
+  });
+
+  it("rejects unsafe snapshot ids", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "epub-snapshot-"));
+
+    await expect(readSnapshot(directory, "../book")).rejects.toThrow(
+      "Invalid snapshot id"
+    );
   });
 });

@@ -104,6 +104,14 @@ describe("core book model", () => {
       "image"
     ]);
   });
+
+  it("accepts an optional review status when creating text blocks", () => {
+    const block = createTextBlock("paragraph", "Needs a pass", {
+      reviewStatus: "needs-review"
+    });
+
+    expect(block.reviewStatus).toBe("needs-review");
+  });
 });
 
 if (false) {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { BookProject } from "@epub-creator/core/book";
-import { exportProject, saveProject } from "../api/client";
+import { exportProject } from "../api/client";
 
 type ExportProfile = "portable-epub3" | "kdp-safe" | "apple-books-enhanced";
 
@@ -8,34 +8,22 @@ interface ProjectActionsProps {
   bookProject: BookProject;
   projectPath: string;
   onProjectPathChange: (projectPath: string) => void;
+  onSaveProject: () => Promise<void>;
 }
 
 export function ProjectActions({
   bookProject,
   projectPath,
-  onProjectPathChange
+  onProjectPathChange,
+  onSaveProject,
 }: ProjectActionsProps) {
   const [outputPath, setOutputPath] = useState("");
   const [profile, setProfile] = useState<ExportProfile>("portable-epub3");
   const [status, setStatus] = useState("");
 
   async function submitSave(): Promise<void> {
-    const trimmedProjectPath = projectPath.trim();
-
-    if (!trimmedProjectPath) {
-      setStatus("Project folder is required.");
-      return;
-    }
-
-    setStatus("Saving...");
-
-    try {
-      const result = await saveProject(trimmedProjectPath, bookProject);
-      setStatus(`Saved ${result.project}.`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setStatus(message);
-    }
+    setStatus("");
+    await onSaveProject();
   }
 
   async function submitExport(): Promise<void> {

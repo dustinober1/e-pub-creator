@@ -1,4 +1,13 @@
-import { assertBookProject, copyProjectAssetSources, type BookProject, writeProjectFolder } from "@epub-creator/core";
+import {
+  assertBookProject,
+  copyProjectAssetSources,
+  createSnapshot,
+  listSnapshots,
+  readProjectFolder,
+  readSnapshot,
+  type BookProject,
+  writeProjectFolder
+} from "@epub-creator/core";
 import { createEpubPackage, writeEpubFile } from "@epub-creator/epub";
 import { importDocx, importDocxBuffer, importMarkdown } from "@epub-creator/importers";
 import { readFile } from "node:fs/promises";
@@ -10,6 +19,64 @@ type ExportProfile = "portable-epub3" | "kdp-safe" | "apple-books-enhanced";
 
 export function projectsRoute(): Response {
   return Response.json({ openProject: null, recentProjects: [] });
+}
+
+export async function snapshotsRoute(request: Request): Promise<Response> {
+  const project = new URL(request.url).searchParams.get("project")?.trim();
+
+  if (!project) {
+    return Response.json({ error: "--project is required." }, { status: 400 });
+  }
+
+  try {
+    return Response.json({ snapshots: await listSnapshots(project) });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return Response.json({ error: `Snapshot list failed: ${message}` }, { status: 400 });
+  }
+}
+
+export async function restoreSnapshotRoute(request: Request): Promise<Response> {
+  const body = await readJsonObject(request);
+
+  if (body instanceof Response) {
+    return body;
+  }
+
+  if (typeof body.project !== "string" || !body.project.trim()) {
+    return Response.json({ error: "--project is required." }, { status: 400 });
+  }
+
+  if (typeof body.snapshotId !== "string" || !body.snapshotId.trim()) {
+    return Response.json({ error: "--snapshotId is required." }, { status: 400 });
+  }
+
+  const project = body.project.trim();
+
+  try {
+    const current = await readProjectFolder(project);
+    const restored = await readSnapshot(project, body.snapshotId.trim());
+    const rollbackSnapshot = await createSnapshot(project, current, "before-restore");
+    await writeProjectFolder(project, restored);
+
+    try {
+      await copyProjectAssetSources(project, restored);
+    } catch (error) {
+      const rollbackProject = await readSnapshot(project, rollbackSnapshot.id);
+      await writeProjectFolder(project, rollbackProject);
+      await copyProjectAssetSources(project, rollbackProject);
+      throw error;
+    }
+
+    return Response.json({
+      status: "restored",
+      project,
+      bookProject: restored
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return Response.json({ error: `Snapshot restore failed: ${message}` }, { status: 400 });
+  }
 }
 
 export async function importProjectRoute(request: Request): Promise<Response> {
@@ -46,8 +113,18 @@ export async function importProjectRoute(request: Request): Promise<Response> {
 
   try {
     const imported = await importSource(source);
+    const existingProject = await readPersistedProject(project);
+
+    if (existingProject) {
+      await createSnapshot(project, existingProject, "before-reimport");
+    }
+
     await writeProjectFolder(project, imported.project);
     await copyProjectAssetSources(project, imported.project);
+
+    if (!existingProject) {
+      await createSnapshot(project, imported.project, "before-import");
+    }
 
     return Response.json({
       source,
@@ -106,8 +183,18 @@ export async function importProjectUploadRoute(request: Request): Promise<Respon
     });
 
     if (projectPath) {
+      const existingProject = await readPersistedProject(projectPath);
+
+      if (existingProject) {
+        await createSnapshot(projectPath, existingProject, "before-reimport");
+      }
+
       await writeProjectFolder(projectPath, imported.project);
       await copyProjectAssetSources(projectPath, imported.project);
+
+      if (!existingProject) {
+        await createSnapshot(projectPath, imported.project, "before-import");
+      }
     }
 
     return Response.json({
@@ -205,6 +292,7 @@ export async function exportProjectRoute(request: Request): Promise<Response> {
     assertBookProject(bookProject);
     await writeProjectFolder(project, bookProject);
     await copyProjectAssetSources(project, bookProject);
+    await createSnapshot(project, bookProject, "before-export");
 
     const packageResult = createEpubPackage(bookProject, EXPORT_CSS, body.profile);
     await writeEpubFile({
@@ -299,4 +387,12 @@ function parseContentLength(value: string | null): number | undefined {
   }
 
   return parsed;
+}
+
+async function readPersistedProject(projectPath: string): Promise<BookProject | undefined> {
+  try {
+    return await readProjectFolder(projectPath);
+  } catch {
+    return undefined;
+  }
 }

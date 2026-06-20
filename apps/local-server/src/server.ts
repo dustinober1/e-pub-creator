@@ -4,7 +4,9 @@ import {
   importProjectRoute,
   importProjectUploadRoute,
   projectsRoute,
-  saveProjectRoute
+  restoreSnapshotRoute,
+  saveProjectRoute,
+  snapshotsRoute
 } from "./routes/projects";
 import { themesRoute } from "./routes/themes";
 
@@ -55,6 +57,22 @@ export function createServerApp(): ServerApp {
         }
 
         return saveProjectRoute(request);
+      }
+
+      if (pathname === "/api/projects/snapshots") {
+        if (!isReadOnlyMethod(request.method)) {
+          return methodNotAllowed();
+        }
+
+        return snapshotsRoute(request);
+      }
+
+      if (pathname === "/api/projects/snapshots/restore") {
+        if (request.method !== "POST") {
+          return methodNotAllowed("POST");
+        }
+
+        return restoreSnapshotRoute(request);
       }
 
       if (pathname === "/api/projects/export") {

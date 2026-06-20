@@ -1,10 +1,29 @@
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createBookProject, createSection, createTextBlock } from "@epub-creator/core";
+import {
+  createBookProject,
+  createSection,
+  createSnapshot,
+  createTextBlock,
+  listSnapshots,
+  readProjectFolder,
+  readSnapshot,
+  writeProjectFolder
+} from "@epub-creator/core";
 
 const importDocxBufferMock = vi.hoisted(() => vi.fn());
+const copyProjectAssetSourcesMock = vi.hoisted(() => vi.fn());
+
+vi.mock("@epub-creator/core", async () => {
+  const actual = await vi.importActual<typeof import("@epub-creator/core")>("@epub-creator/core");
+
+  return {
+    ...actual,
+    copyProjectAssetSources: copyProjectAssetSourcesMock
+  };
+});
 
 vi.mock("@epub-creator/importers", async () => {
   const actual = await vi.importActual<typeof import("@epub-creator/importers")>("@epub-creator/importers");
@@ -17,8 +36,12 @@ vi.mock("@epub-creator/importers", async () => {
 
 import { createServerApp } from "../src/server";
 
+copyProjectAssetSourcesMock.mockResolvedValue(undefined);
+
 afterEach(() => {
   importDocxBufferMock.mockReset();
+  copyProjectAssetSourcesMock.mockReset();
+  copyProjectAssetSourcesMock.mockResolvedValue(undefined);
 });
 
 function importRequest(body: string): Request {
@@ -46,6 +69,20 @@ function saveRequest(body: string): Request {
 
 function exportRequest(body: string): Request {
   return new Request("http://127.0.0.1/api/projects/export", {
+    method: "POST",
+    body,
+    headers: { "content-type": "application/json" }
+  });
+}
+
+function snapshotListRequest(project: string): Request {
+  return new Request(
+    `http://127.0.0.1/api/projects/snapshots?project=${encodeURIComponent(project)}`
+  );
+}
+
+function snapshotRestoreRequest(body: string): Request {
+  return new Request("http://127.0.0.1/api/projects/snapshots/restore", {
     method: "POST",
     body,
     headers: { "content-type": "application/json" }
@@ -116,6 +153,7 @@ describe("project import route", () => {
         metadata: { title: string };
         sections: unknown[];
       };
+      const snapshotEntries = await readdir(join(project, ".snapshots"));
 
       expect(response.status).toBe(200);
       expect(body).toEqual({
@@ -141,6 +179,37 @@ describe("project import route", () => {
       });
       expect(projectContent.metadata.title).toBe("Imported Book");
       expect(projectContent.sections).toHaveLength(1);
+      expect(snapshotEntries).toHaveLength(1);
+      expect(snapshotEntries[0]).toContain("before-import");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("creates a reimport snapshot before replacing an existing project", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "epub-server-reimport-"));
+
+    try {
+      const source = join(directory, "book.md");
+      const project = join(directory, "Draft.epubproj");
+      const existingProject = createBookProjectFixture("Existing Title");
+
+      await writeFile(source, "# Replacement Book\n\n## Chapter One\n\nReplacement paragraph.\n");
+      await writeProjectFolder(project, existingProject);
+
+      const app = createServerApp();
+      const response = await app.handle(
+        importRequest(JSON.stringify({ source, project }))
+      );
+      const snapshots = await listSnapshots(project);
+      const restoredExisting = await readSnapshot(project, snapshots[0]?.id ?? "");
+      const currentProject = await readProjectFolder(project);
+
+      expect(response.status).toBe(200);
+      expect(snapshots).toHaveLength(1);
+      expect(snapshots[0]?.reason).toBe("before-reimport");
+      expect(restoredExisting.metadata.title).toBe("Existing Title");
+      expect(currentProject.metadata.title).toBe("Replacement Book");
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
@@ -218,6 +287,103 @@ describe("project import route", () => {
     expect(response.headers.get("allow")).toBe("POST");
     await expect(response.json()).resolves.toEqual({ error: "Method not allowed" });
   });
+
+  it("lists and restores project snapshots", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "epub-server-snapshots-"));
+
+    try {
+      const project = join(directory, "Draft.epubproj");
+      const first = createBookProjectFixture("First Title");
+      await writeProjectFolder(project, first);
+      const snapshot = await createSnapshot(project, first, "before-export");
+
+      const second = createBookProjectFixture("Second Title");
+      await writeProjectFolder(project, second);
+
+      const app = createServerApp();
+      const listResponse = await app.handle(snapshotListRequest(project));
+      const listBody = (await listResponse.json()) as { snapshots: unknown[] };
+
+      expect(listResponse.status).toBe(200);
+      expect(listBody.snapshots).toHaveLength(1);
+
+      const restoreResponse = await app.handle(
+        snapshotRestoreRequest(JSON.stringify({ project, snapshotId: snapshot.id }))
+      );
+      const restoreBody = (await restoreResponse.json()) as {
+        bookProject: { metadata: { title: string } };
+      };
+      const restored = await readProjectFolder(project);
+
+      expect(restoreResponse.status).toBe(200);
+      expect(restoreBody.bookProject.metadata.title).toBe("First Title");
+      expect(restored.metadata.title).toBe("First Title");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("rolls back snapshot restore when asset copying fails", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "epub-server-snapshot-rollback-"));
+
+    try {
+      const project = join(directory, "Draft.epubproj");
+      const first = createBookProjectFixture("First Title");
+      await writeProjectFolder(project, first);
+      const snapshot = await createSnapshot(project, first, "before-export");
+
+      const second = createBookProjectFixture("Second Title");
+      await writeProjectFolder(project, second);
+
+      copyProjectAssetSourcesMock
+        .mockRejectedValueOnce(new Error("Asset copy failed."))
+        .mockResolvedValueOnce(undefined);
+
+      const app = createServerApp();
+      const response = await app.handle(
+        snapshotRestoreRequest(JSON.stringify({ project, snapshotId: snapshot.id }))
+      );
+      const body = (await response.json()) as { error: string };
+      const restored = await readProjectFolder(project);
+
+      expect(response.status).toBe(400);
+      expect(body.error).toContain("Snapshot restore failed: Asset copy failed.");
+      expect(restored.metadata.title).toBe("Second Title");
+      expect(copyProjectAssetSourcesMock).toHaveBeenCalledTimes(2);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("does not create a rollback snapshot when the target snapshot cannot be read", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "epub-server-snapshot-missing-"));
+
+    try {
+      const project = join(directory, "Draft.epubproj");
+      const current = createBookProjectFixture("Current Title");
+      await writeProjectFolder(project, current);
+      const snapshotsPath = join(project, ".snapshots");
+      const beforeEntries = await readdir(snapshotsPath);
+
+      const app = createServerApp();
+      const response = await app.handle(
+        snapshotRestoreRequest(
+          JSON.stringify({ project, snapshotId: "missing-snapshot-id" })
+        )
+      );
+      const body = (await response.json()) as { error: string };
+      const afterEntries = await readdir(snapshotsPath);
+      const restored = await readProjectFolder(project);
+
+      expect(response.status).toBe(400);
+      expect(body.error).toContain("Snapshot restore failed:");
+      expect(afterEntries).toEqual(beforeEntries);
+      expect(restored.metadata.title).toBe("Current Title");
+      expect(copyProjectAssetSourcesMock).not.toHaveBeenCalled();
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("project import upload route", () => {
@@ -250,6 +416,7 @@ describe("project import upload route", () => {
         metadata: { title: string };
         sections: unknown[];
       };
+      const snapshotEntries = await readdir(join(project, ".snapshots"));
 
       expect(response.status).toBe(200);
       expect(importDocxBufferMock).toHaveBeenCalledWith(Buffer.from("docx bytes"), {
@@ -269,6 +436,8 @@ describe("project import upload route", () => {
       expect(body.report.warnings).toHaveLength(1);
       expect(projectContent.metadata.title).toBe("Uploaded Book");
       expect(projectContent.sections).toHaveLength(1);
+      expect(snapshotEntries).toHaveLength(1);
+      expect(snapshotEntries[0]).toContain("before-import");
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
@@ -447,6 +616,7 @@ describe("project save and export routes", () => {
         await readFile(join(projectPath, "content", "book.json"), "utf8")
       ) as { metadata: { title: string } };
       const archive = await stat(outputPath);
+      const snapshotEntries = await readdir(join(projectPath, ".snapshots"));
 
       expect(response.status).toBe(200);
       expect(body).toMatchObject({
@@ -458,6 +628,8 @@ describe("project save and export routes", () => {
       expect(savedProject.metadata.title).toBe("Exported Book");
       expect(archive.isFile()).toBe(true);
       expect(archive.size).toBeGreaterThan(0);
+      expect(snapshotEntries).toHaveLength(1);
+      expect(snapshotEntries[0]).toContain("before-export");
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

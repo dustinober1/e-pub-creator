@@ -3,6 +3,8 @@ import { createId } from "./ids";
 
 export type SectionRole = "front" | "body" | "back";
 
+export type ReviewStatus = "needs-review" | "accepted";
+
 export type TextBlockKind =
   | "paragraph"
   | "heading"
@@ -54,6 +56,7 @@ export interface TextBlockBase<K extends TextBlockKind> {
   kind: K;
   text: string;
   noteId?: string;
+  reviewStatus?: ReviewStatus;
   style?: BlockStyleOverride;
 }
 
@@ -71,6 +74,7 @@ export type TextBlock = PlainTextBlock | HeadingTextBlock | ImageTextBlock;
 
 export interface TextBlockCommonInput {
   noteId?: string;
+  reviewStatus?: ReviewStatus;
   style?: BlockStyleOverride;
 }
 

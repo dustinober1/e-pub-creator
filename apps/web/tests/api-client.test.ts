@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createBookProject } from "@epub-creator/core/book";
-import { exportProject, importProject, saveProject, uploadDocxProject } from "../src/api/client";
+import {
+  exportProject,
+  importProject,
+  listProjectSnapshots,
+  restoreProjectSnapshot,
+  saveProject,
+  uploadDocxProject
+} from "../src/api/client";
 
 const originalFetch = globalThis.fetch;
 
@@ -164,6 +171,59 @@ describe("saveProject", () => {
     globalThis.fetch = vi.fn(async () => Response.json({ error: "Cannot save project." }, { status: 400 }));
 
     await expect(saveProject("/tmp/Draft.epubproj", createBookProjectFixture())).rejects.toThrow("Cannot save project.");
+  });
+});
+
+describe("project snapshots", () => {
+  it("lists project snapshots", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      Response.json({
+        snapshots: [
+          {
+            id: "snapshot-1",
+            reason: "before-export",
+            path: "/tmp/Draft.epubproj/.snapshots/snapshot-1.json",
+            createdAt: "2026-06-19T00:00:00.000Z"
+          }
+        ]
+      })
+    );
+
+    const result = await listProjectSnapshots("/tmp/Draft.epubproj");
+
+    expect(result.snapshots).toHaveLength(1);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/projects/snapshots?project=%2Ftmp%2FDraft.epubproj"
+    );
+  });
+
+  it("restores a project snapshot", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      Response.json({
+        status: "restored",
+        project: "/tmp/Draft.epubproj",
+        bookProject: createBookProjectFixture("Restored Title")
+      })
+    );
+
+    const result = await restoreProjectSnapshot(
+      "/tmp/Draft.epubproj",
+      "snapshot-1"
+    );
+
+    expect(result.status).toBe("restored");
+    expect(result.bookProject.metadata.title).toBe("Restored Title");
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/projects/snapshots/restore",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          project: "/tmp/Draft.epubproj",
+          snapshotId: "snapshot-1"
+        })
+      }
+    );
   });
 });
 

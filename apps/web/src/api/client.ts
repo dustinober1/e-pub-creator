@@ -58,6 +58,13 @@ export interface SaveProjectResponse {
   project: string;
 }
 
+export interface ProjectSnapshotSummary {
+  id: string;
+  reason: string;
+  path: string;
+  createdAt: string;
+}
+
 export interface ExportProjectInput {
   project: string;
   output: string;
@@ -128,6 +135,43 @@ export async function saveProject(project: string, bookProject: BookProject): Pr
   }
 
   return response.json() as Promise<SaveProjectResponse>;
+}
+
+export async function listProjectSnapshots(
+  project: string
+): Promise<{ snapshots: ProjectSnapshotSummary[] }> {
+  const response = await fetch(
+    `/api/projects/snapshots?project=${encodeURIComponent(project)}`
+  );
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error ?? `Snapshot list failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<{ snapshots: ProjectSnapshotSummary[] }>;
+}
+
+export async function restoreProjectSnapshot(
+  project: string,
+  snapshotId: string
+): Promise<{ status: string; project: string; bookProject: BookProject }> {
+  const response = await fetch("/api/projects/snapshots/restore", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ project, snapshotId })
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error ?? `Snapshot restore failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<{
+    status: string;
+    project: string;
+    bookProject: BookProject;
+  }>;
 }
 
 export async function exportProject(input: ExportProjectInput): Promise<ExportProjectResponse> {
